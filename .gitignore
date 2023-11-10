@@ -1,3 +1,4 @@
 /test.ipynb
 *.pyc
 *.egg-info/
+experiments/*/experiments/*

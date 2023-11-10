@@ -10,16 +10,13 @@ class BaseFunction():
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         raise NotImplementedError
 
-    def generate_samples(self,sample_range:List, sample_step:List) -> Tuple:
+    def generate_samples(self) -> Tuple:
 
-        if type(sample_step) == int or type(sample_step) == float:
-            sample_step = [sample_step] * self.in_features
-
-        assert len(sample_range) == self.in_features, "Sample Range elements must match the number of in_features"
-        assert len(sample_step) == self.in_features, "Sample Rate elements must match the number of in_features"
+        assert len(self.config.ranges) == self.config.in_features, "Sample Range elements must match the number of in_features"
+        assert len(self.config.sample_rates) == self.config.in_features, "Sample Rate elements must match the number of in_features"
 
         # Generating a meshgrid for multi-dimensional sampling
-        axes = [np.arange(r[0], r[1], s) for r, s in zip(sample_range, sample_step)]
+        axes = [np.arange(r[0], r[1], 1/s) for r, s in zip(self.config.ranges, self.config.sample_rates)]
         meshgrid = np.meshgrid(*axes, indexing='ij')
         flat_grid = np.stack([axis.flat for axis in meshgrid], axis=-1)
         
@@ -29,7 +26,9 @@ class BaseFunction():
 
         return np.transpose(np.array(meshgrid),(1,2,0)), values.reshape([*meshgrid[0].shape,1])
     
-    def plot(self,points,values):
+    def plot(self):
+
+        points,values = self.generate_samples()
 
         assert len(points.shape) - 1 <= 3, "Can only plot functions for dim <= 3" 
 
@@ -41,5 +40,5 @@ class BaseFunction():
         ax.set_ylabel('y')
         ax.set_zlabel('z')
 
-        ax.view_init(60, 35)
+        #ax.view_init(60, 35)
         
