@@ -87,8 +87,9 @@ def run_experiment(config=None, **kwargs):
         train_points, train_values, test_size= config.val_split_size / (1 - config.test_split_size) , random_state=config.seed)
 
     train_dataset = FunctionSampleDataset(train_points, train_values)
+    test_dataset = FunctionSampleDataset(test_points, test_values)
 
-    model = trainer.train(model,train_dataset)    
+    model = trainer.train(model,train_dataset,test_dataset)    
     #model.plot()
 
     ### Eval the model on the test split
