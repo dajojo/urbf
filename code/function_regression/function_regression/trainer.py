@@ -68,6 +68,7 @@ class Trainer:
 
             # Print statistics after every epoch
             log.add_value('train_loss',running_train_loss)
+            log.add_value('means',model.layers[0].means)
             
 
             if test_loader != None:
