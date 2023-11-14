@@ -18,14 +18,14 @@ class URBFLayer(torch.nn.Module):
         self.vars = torch.nn.Parameter(torch.ones(self.out_features))
 
 
-        means = self.means
-        for dim, range in enumerate(self.ranges):
-            min,max = range
+        means = torch.zeros_like(self.means)
+        for dim, dim_range in enumerate(self.ranges):
+            dim_min,dim_max = dim_range
 
-            step = (max - min)/(self.out_features_per_in_feature - 1)
+            step = (dim_max - dim_min)/(self.out_features_per_in_feature - 1)
             
-            for out_feat_dim in self.out_features_per_in_feature:
-                means[dim*self.out_features_per_in_feature + out_feat_dim] = min + step*out_feat_dim
+            for out_feat_dim in range(self.out_features_per_in_feature):
+                means[dim*self.out_features_per_in_feature + out_feat_dim] = dim_min + step*out_feat_dim
         
         self.means = torch.nn.Parameter(means)
 

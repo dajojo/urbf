@@ -31,9 +31,8 @@ class URBFMLP(torch.nn.Module):
 
         self.layers = []
 
-
         if self.config.use_urbf:
-            self.layers.append(URBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
+            self.layers.append(URBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0],ranges=self.config.ranges))
         else:
             self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
             self.layers.append(torch.nn.ReLU())

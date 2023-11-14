@@ -5,15 +5,15 @@ from torch.utils.data import DataLoader
 import torch
 import exputils.data.logging as log
 
-class Trainer:
+class SGDTrainer:
 
     @staticmethod
     def default_config():
         def_config = eu.AttrDict()
-
         def_config.learning_rate = 0.01
         def_config.n_epochs = 100
         def_config.batch_size = 64
+        def_config.device = "cpu"
 
         return def_config
     
@@ -32,11 +32,11 @@ class Trainer:
             test_loader = None
 
         # Define an optimizer and a loss function
-        optimizer = torch.optim.SGD(list(model.parameters()), lr=0.01)
+        optimizer = torch.optim.SGD(list(model.parameters()), lr=self.config.learning_rate)
         criterion = torch.nn.MSELoss()
 
         # Move model to GPU if available
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = self.config.device #torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model.to(device)
 
         eu.misc.update_status(f'Epoch 0/{self.config.n_epochs} - Loss: -')
@@ -52,10 +52,10 @@ class Trainer:
                 optimizer.zero_grad()
 
                 # Forward pass: compute the model output
-                outputs = model(inputs)#.squeeze()
+                outputs = model(inputs.to(device))#.squeeze()
 
                 # Compute the loss
-                loss = criterion(outputs, labels)
+                loss = criterion(outputs, labels.to(device))
 
                 # Backward pass: compute the gradient of the loss with respect to model parameters
                 loss.backward()
@@ -68,7 +68,9 @@ class Trainer:
 
             # Print statistics after every epoch
             log.add_value('train_loss',running_train_loss)
-            log.add_value('means',model.layers[0].means)
+
+            if hasattr(model.layers[0],'means'):
+                log.add_value('means',model.layers[0].means.cpu().detach())
             
 
             if test_loader != None:
@@ -76,9 +78,9 @@ class Trainer:
                 running_test_loss = 0.0
                 for i, (inputs, labels) in enumerate(test_loader):
                     # Forward pass: compute the model output
-                    outputs = model(inputs)#.squeeze()
+                    outputs = model(inputs.to(device))#.squeeze()
                     # Compute the loss
-                    loss = criterion(outputs, labels)
+                    loss = criterion(outputs, labels.to(device))
                     # Accumulate the running loss
                     running_test_loss += loss.item()
                 log.add_value('test_loss',running_test_loss)

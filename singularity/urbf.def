@@ -1,0 +1,25 @@
+Bootstrap: docker
+From: pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
+
+%labels
+  Author chris.reinke@inria.fr
+  Version v0.1.0
+
+# list of files that should be available in the container
+%files
+    requirements.txt
+
+%post
+  # install build-essentials to have the g++ compiler that is needed for pytorch "torch.compile"
+  apt update
+  apt install -y build-essential
+  apt install -y nvidia-cuda-toolkit
+
+  # install all required packages as defined in the yml file in the conda base environment
+  pip install --no-cache-dir -r requirements.txt
+
+  # remove the yml file
+  rm requirements.txt
+
+
+

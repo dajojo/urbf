@@ -24,7 +24,7 @@ class BaseFunction():
         values = np.array([self.__call__(point) for point in flat_grid])
 
 
-        return np.transpose(np.array(meshgrid),(1,2,0)), values.reshape([*meshgrid[0].shape,1])
+        return np.transpose(np.array(meshgrid),(1,2,0)).reshape((-1,len(self.config.ranges))), values.reshape([*meshgrid[0].shape,1]).reshape((-1,1))
     
     def plot(self):
 

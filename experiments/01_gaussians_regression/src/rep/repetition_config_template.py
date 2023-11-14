@@ -17,8 +17,9 @@ config = eu.AttrDict(
         difficulty=<difficulty>,
         in_features=<in_features>
         ),
+    
     trainer = eu.AttrDict(
-        cls=function_regression.Trainer,
+        cls=function_regression.<trainer>,
         learning_rate=<learning_rate>,
         n_epochs=<n_epochs>,
         batch_size=<batch_size>),

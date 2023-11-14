@@ -18,7 +18,7 @@ class GaussianMixtureFunction(BaseFunction):
         def_config.vars = np.array([1,1])
         def_config.coef = np.array([1,1])
         
-        def_config.sample_rates = [100,100]
+        def_config.sample_rates = [10,10]
 
         return def_config
 

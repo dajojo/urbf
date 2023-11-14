@@ -1,7 +1,7 @@
 from function_regression.function_sample_dataset import FunctionSampleDataset
 from function_regression.functions.gaussian_mixture_function import GaussianMixtureFunction
 from function_regression.models.urbf_mlp import URBFMLP
-from function_regression.trainer import Trainer
+from function_regression.sgd_trainer import SGDTrainer
 import numpy as np
 from typing import Any, List,Tuple
 from sklearn.model_selection import train_test_split
@@ -30,7 +30,7 @@ def sample_random_arrays(n: int, ranges: List[Tuple[float, float]]) -> np.ndarra
     samples = np.array([np.random.uniform(r[0], r[1], n) for r in ranges])
     
     # Transpose the samples to get the desired shape (n, D)
-    return samples.T
+    return samples.T#.reshape(-1,D)
 
 
 
@@ -43,7 +43,7 @@ def run_experiment(config=None, **kwargs):
             in_features=2,
             difficulty=2,
             ranges=[(-5,5),(-5,5)]),
-        trainer = eu.AttrDict(cls=Trainer),
+        trainer = eu.AttrDict(cls=SGDTrainer),
         seed = 123,
         test_split_size = 0.2,
         val_split_size = 0.2,
