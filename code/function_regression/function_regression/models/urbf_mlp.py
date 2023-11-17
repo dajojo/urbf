@@ -16,8 +16,8 @@ class URBFMLP(torch.nn.Module):
         def_config.in_features = 2
         def_config.out_features = 1
         def_config.hidden_features = [16,16,8,4]
-        def_config.ranges = [(-5,5),(-5,5)]
-        def_config.sample_rates = [100,100]
+        def_config.ranges = (-5,5)
+        def_config.sample_rates = 100
         def_config.use_urbf = True
 
         return def_config
@@ -28,6 +28,13 @@ class URBFMLP(torch.nn.Module):
         super().__init__()
 
         self.config = eu.combine_dicts(kwargs, config, self.default_config())
+
+        if isinstance(self.config.ranges, tuple):
+            self.config.ranges = [self.config.ranges] * self.config.in_features
+
+        if isinstance(self.config.sample_rates, int):
+            self.config.sample_rates = [self.config.sample_rates] * self.config.in_features
+     
 
         self.layers = []
 

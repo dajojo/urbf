@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 import torch
 import exputils.data.logging as log
+import gc
 
 class SKLFit:
 
@@ -11,6 +12,7 @@ class SKLFit:
     def default_config():
         def_config = eu.AttrDict()
         def_config.device = "cpu"
+        def_config.n_epochs = 100
 
         return def_config
     
@@ -28,18 +30,23 @@ class SKLFit:
 
         model.fit(x,y)
 
-
         print(f"X: {x.shape}")
         y_pred = model(x)
+        
         print(f"Y pred: {y_pred.shape}")
         loss = criterion(y_pred,y)
+        for epoch in range(self.config.n_epochs):
+            log.add_value('train_loss',loss)
+            log.add_value('epoch', epoch)
 
-        log.add_value('train_loss',loss)
+
+        del y_pred
+        gc.collect()
 
         y_pred = model(x_test)
         loss = criterion(y_pred,y_test)
-
-        log.add_value('test_loss',loss)
+        for epoch in range(self.config.n_epochs):
+            log.add_value('test_loss',loss)
 
         log.save()
 
