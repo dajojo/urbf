@@ -33,4 +33,5 @@ Penn Machine Learning Benchmarks
 
 TODO: 
  - [ ] Functions with an unequal probability distribution -> Observe behaviour of mean values
- - 
+ - [ ] Dropout? Study the effect of dropout! Maybe we can observe improved performance
+ - [ ] We need to enforce movement of mean values based on activity in a certain region to improve performance

@@ -70,8 +70,21 @@ class SGDTrainer:
             log.add_value('train_loss',running_train_loss)
 
             if hasattr(model.layers[0],'means'):
-                log.add_value('means',model.layers[0].means.cpu().detach())
-            
+                means = model.layers[0].state_dict()["means"].cpu().detach().numpy()
+                print(f"Updated mean: {means.tostring()}")
+
+                for idx,mean in enumerate(means):
+                    log.add_value(f"mean{idx}",mean)
+
+            eu.misc.update_status(f'Epoch {epoch + 1}/{self.config.n_epochs} - Train Loss: {running_train_loss/len(train_loader):.4f}')
+
+            if hasattr(model.layers[0],'vars'):
+                vars = model.layers[0].state_dict()["vars"].cpu().detach().numpy()
+                print(f"Updated vars: {vars}")
+
+                for idx,var in enumerate(vars):
+                    log.add_value(f"var{idx}",var)
+        
 
             if test_loader != None:
                 model.eval()
@@ -85,8 +98,6 @@ class SGDTrainer:
                     running_test_loss += loss.item()
                 log.add_value('test_loss',running_test_loss)
             log.add_value('epoch', epoch)
-
-            eu.misc.update_status(f'Epoch {epoch + 1}/{self.config.n_epochs} - Train Loss: {running_train_loss/len(train_loader):.4f}')
 
 
         log.save()

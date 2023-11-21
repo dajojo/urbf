@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import torch
 import exputils as eu
 import numpy as np
+import torch.nn as nn
 
 from urbf_layer.urbf_layer import URBFLayer
 
@@ -54,6 +55,11 @@ class URBFMLP(torch.nn.Module):
         self.layers.append(torch.nn.Linear(in_dim, self.config.out_features))
 
         self.layers = torch.nn.Sequential(*self.layers)
+
+        self.params = nn.ModuleDict({
+             'urbf': nn.ModuleList([self.layers[0]]) if self.config.use_urbf else nn.ModuleList([]),
+             'mlp': nn.ModuleList(self.layers[1:]) if self.config.use_urbf else nn.ModuleList(self.layers),
+             })
 
 
     def forward(self,x):

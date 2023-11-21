@@ -24,7 +24,7 @@ def sample_random_arrays(n: int, ranges: List[Tuple[float, float]]) -> np.ndarra
         raise ValueError("Ranges must be a list of (min, max) tuples.")
     
     # Number of dimensions is determined by the length of the ranges list
-    D = len(ranges)
+    #D = len(ranges)
     
     # Sample random values within the specified ranges for each dimension
     samples = np.array([np.random.uniform(r[0], r[1], n) for r in ranges])
@@ -42,7 +42,7 @@ def run_experiment(config=None, **kwargs):
             cls=GaussianMixtureFunction,
             in_features=2,
             difficulty=2,
-            ranges=[(-5,5),(-5,5)]),
+            ranges=[(-5,5),(-5,5)],),
         trainer = eu.AttrDict(cls=SGDTrainer),
         seed = 123,
         test_split_size = 0.2,
@@ -52,6 +52,11 @@ def run_experiment(config=None, **kwargs):
 
     # set the config based on the default config, given config, and the given function arguments
     config = eu.combine_dicts(kwargs, config, default_config)
+
+    ### Sanitize
+    if isinstance(config.function.ranges,tuple):
+        config.function.ranges = [config.function.ranges] * config.function.in_features        
+
 
     # set random seeds with seed defined in the config
     eu.misc.seed(config)
@@ -76,8 +81,6 @@ def run_experiment(config=None, **kwargs):
     sample_points, sample_values = function.generate_samples()
     print(f"Sampled {sample_values.shape}")
     
-    #function.plot()   
-
     # Split the dataset into training (60%), validation (20%), and test (20%)
     train_points, test_points, train_values, test_values = train_test_split(
         sample_points, sample_values, test_size=0.2, random_state=config.seed)

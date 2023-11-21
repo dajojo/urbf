@@ -1,6 +1,7 @@
 import torch
 import math
 from typing import List,Tuple
+import torch.nn as nn
 
 class URBFLayer(torch.nn.Module):
     def __init__(self,in_features:int,out_features:int,ranges:List[Tuple[int]]):
@@ -29,6 +30,9 @@ class URBFLayer(torch.nn.Module):
         
         self.means = torch.nn.Parameter(means)
 
+        # self.params = nn.ModuleDict({
+        #     'urbf_means': nn.ModuleList(self.means),
+        #     'urbf_vars': nn.ModuleList(self.vars)})
 
     @property
     def out_features_per_in_feature(self) -> int:

@@ -40,8 +40,8 @@ class SKLFit:
             log.add_value('epoch', epoch)
 
 
-        del y_pred
-        gc.collect()
+        #del y_pred
+        #gc.collect()
 
         y_pred = model(x_test)
         loss = criterion(y_pred,y_test)

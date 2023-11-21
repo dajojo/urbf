@@ -12,7 +12,6 @@ class PMLBDataset():
 
         return def_config
 
-    #def __init__(self,in_features: int ,means, vars,coef = None,):
     def __init__(self, config=None, **kwargs):
         self.config = eu.combine_dicts(kwargs, config, self.default_config())
 
