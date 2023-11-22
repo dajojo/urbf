@@ -11,8 +11,9 @@ class SGDTrainer:
     def default_config():
         def_config = eu.AttrDict()
         def_config.learning_rate = 0.01
+        def_config.urbf_learning_rate = None
         def_config.n_epochs = 100
-        def_config.batch_size = 64
+        def_config.batch_size = 32
         def_config.device = "cpu"
 
         return def_config
@@ -31,8 +32,19 @@ class SGDTrainer:
         else:
             test_loader = None
 
+        if self.config.urbf_learning_rate == None:
+            self.config.urbf_learning_rate = self.config.learning_rate
+
+
+
+        ## Minor experiment checking the influence of different learning rates...
         # Define an optimizer and a loss function
-        optimizer = torch.optim.SGD(list(model.parameters()), lr=self.config.learning_rate)
+        optimizer = torch.optim.SGD([{'params':model.params.mlp.parameters()},
+                                     {'params':model.params.urbf.parameters(), 'lr': self.config.urbf_learning_rate}], lr=self.config.learning_rate)
+        
+        # Define an optimizer and a loss function
+        #optimizer = torch.optim.SGD([model.parameters()], lr=self.config.learning_rate)
+        
         criterion = torch.nn.MSELoss()
 
         # Move model to GPU if available
@@ -71,7 +83,7 @@ class SGDTrainer:
 
             if hasattr(model.layers[0],'means'):
                 means = model.layers[0].state_dict()["means"].cpu().detach().numpy()
-                print(f"Updated mean: {means.tostring()}")
+                print(f"Updated mean: {means}")
 
                 for idx,mean in enumerate(means):
                     log.add_value(f"mean{idx}",mean)

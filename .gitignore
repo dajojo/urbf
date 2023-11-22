@@ -1,5 +1,6 @@
 /test.ipynb
 *.pyc
 *.egg-info/
+*.npy
 experiments/*/experiments/*
 experiments/*/logs/*

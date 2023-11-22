@@ -4,12 +4,15 @@ from typing import List,Tuple
 import torch.nn as nn
 
 class URBFLayer(torch.nn.Module):
-    def __init__(self,in_features:int,out_features:int,ranges:List[Tuple[int]]):
+    def __init__(self,in_features:int,out_features:int,ranges:List[Tuple[int]],use_split_merge=True):
         super().__init__()
 
         self.in_features = in_features
         self.out_features = out_features
         self.ranges = ranges
+
+        self.use_split_merge = use_split_merge
+        self.split_merge_factor = torch.ones(self.in_features) * 10
 
         assert len(self.ranges) == self.in_features, "Number of range pairs must match the number of input features"
         assert (self.out_features % self.in_features) == 0, "out_features must be a multiple of in_features"
@@ -17,7 +20,6 @@ class URBFLayer(torch.nn.Module):
 
         self.means = torch.nn.Parameter(torch.zeros(self.out_features))
         self.vars = torch.nn.Parameter(torch.ones(self.out_features))
-
 
         means = torch.zeros_like(self.means)
         for dim, dim_range in enumerate(self.ranges):
@@ -30,13 +32,55 @@ class URBFLayer(torch.nn.Module):
         
         self.means = torch.nn.Parameter(means)
 
-        # self.params = nn.ModuleDict({
-        #     'urbf_means': nn.ModuleList(self.means),
-        #     'urbf_vars': nn.ModuleList(self.vars)})
+        self.register_backward_hook(self.backward_hook)
+
+        self.grads = []
+        self.means_hist = []
+        self.acc_grad = torch.zeros_like(self.means)
+        self.acc_grad_hist = []
 
     @property
     def out_features_per_in_feature(self) -> int:
         return self.out_features // self.in_features
+
+
+    def backward_hook(self, module, grad_input, grad_output):
+        # Your custom logic here
+        print("Custom layer backward hook called")
+        print(f"input: {grad_input[0].shape} output: {grad_output[0].shape}")
+        # Example: print gradients
+        print("Gradients at this layer:", grad_output)
+
+        self.grads.append(grad_input[0])
+        self.acc_grad = self.acc_grad + grad_input[0].abs().sum(dim=0).detach().clone()
+
+
+        if self.use_split_merge:
+            self.check_for_split_merge()
+
+        self.means_hist.append(self.means.detach().clone())
+        self.acc_grad_hist.append(self.acc_grad)
+
+
+    def check_for_split_merge(self):
+        print("check_for_split_merge")
+
+        for in_feature in range(self.in_features):
+            out_feats = self.acc_grad[in_feature*self.out_features_per_in_feature:(in_feature+1)*self.out_features_per_in_feature]
+
+            max_val,max_idx = out_feats.max(dim=0)
+            min_val,min_idx = out_feats.min(dim=0)
+            
+            if max_val > self.split_merge_factor[in_feature]*min_val:
+                # Perform Split and Merge!
+                self.split_merge_factor[in_feature] = self.split_merge_factor[in_feature]
+
+                max_mean = self.means[max_idx + in_feature*self.out_features_per_in_feature]
+                self.means[min_idx + in_feature*self.out_features_per_in_feature] = max_mean - self.vars[max_idx + in_feature*self.out_features_per_in_feature]/2 #self.means[min_idx + in_feature*self.out_features_per_in_feature] + 
+                self.means[max_idx + in_feature*self.out_features_per_in_feature] = max_mean + self.vars[max_idx + in_feature*self.out_features_per_in_feature]/2 
+
+                self.acc_grad[in_feature*self.out_features_per_in_feature:(in_feature+1)*self.out_features_per_in_feature] = torch.zeros(self.out_features_per_in_feature)
+
 
     def forward(self,x):
         """

@@ -20,6 +20,7 @@ class URBFMLP(torch.nn.Module):
         def_config.ranges = (-5,5)
         def_config.sample_rates = 100
         def_config.use_urbf = True
+        def_config.dropout_rate = 0
 
         return def_config
 
@@ -45,6 +46,10 @@ class URBFMLP(torch.nn.Module):
             self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
             self.layers.append(torch.nn.ReLU())
 
+
+        if self.config.dropout_rate > 0:
+            #### we will test dropout here:
+            self.layers.append(torch.nn.Dropout(p=self.config.dropout_rate))
 
         in_dim = self.config.hidden_features[0]
         for hidden_dim in self.config.hidden_features[1:]:

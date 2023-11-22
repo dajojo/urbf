@@ -1,6 +1,8 @@
 from typing import Any, List,Tuple
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.interpolate import griddata
+import plotly.graph_objects as go
 
 
 class BaseFunction():
@@ -32,13 +34,23 @@ class BaseFunction():
 
         assert len(points.shape) - 1 <= 3, "Can only plot functions for dim <= 3" 
 
-        fig = plt.figure()
-        ax = plt.axes(projection='3d')
 
-        ax.contour3D(points[...,0], points[...,1], values[...,0], 50, cmap='binary')
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
+        print(points.shape)
+        print(values.shape)
 
-        #ax.view_init(60, 35)
-        
+        fig = go.Figure(data=[go.Scatter3d(
+            x=points[:, 0],
+            y=points[:, 1],
+            z=values[:, 0],
+            mode='markers',
+            marker=dict(
+                size=2,
+                color=values[:, 0],  # Coloring based on the values
+                colorscale='Viridis',  # Color scale
+                opacity=0.8
+            )
+        )])
+
+        fig.show()
+
+                

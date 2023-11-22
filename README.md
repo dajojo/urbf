@@ -35,3 +35,24 @@ TODO:
  - [ ] Functions with an unequal probability distribution -> Observe behaviour of mean values
  - [ ] Dropout? Study the effect of dropout! Maybe we can observe improved performance
  - [ ] We need to enforce movement of mean values based on activity in a certain region to improve performance
+
+
+### Observation
+
+When using mean grad input, the initial grad in the first 20 steps diverges...
+- Higher grads indicate higher importance
+- Lower grads indicate gaussians with lower importance
+  
+Note: Neurons at the start might be also low since they might not have a great impact.
+There is fluent transition between important and unimportant gaussians...
+
+Split & Merge:
+1. Condition
+   1. Frequency Domain? A strong Highfrequency signal might suggest unwanted behaviour -> Split!
+   2. Use relative distance between mean input grads -> Split for highest and merge for lowest
+      1. But be aware: noisy signal -> sum over batches until a relative distance is reached 
+      2. Split & Merge
+      3. Increase threshold by Factor b
+      4. repeat
+2. Split & Merge
+   1. Which Gaussians are split and which are merged?

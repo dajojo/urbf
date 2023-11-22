@@ -66,11 +66,11 @@ def run_experiment(config=None, **kwargs):
         print(f"Randomly generated mean: {config.function.means}")
 
     if "vars" not in config.function:
-        config.function.vars = np.squeeze(sample_random_arrays(config.function.difficulty,[(0.5,4)]), axis=1)
+        config.function.vars = np.squeeze(sample_random_arrays(config.function.difficulty,[(0.5,1)]), axis=1)
         print(f"Randomly generated vars: {config.function.vars}")
 
     if "coef" not in config.function:
-        config.function.coef = np.squeeze(sample_random_arrays(config.function.difficulty,[(0.5,4)]), axis=1)
+        config.function.coef = np.squeeze(sample_random_arrays(config.function.difficulty,[(0.5,1)]), axis=1)
         print(f"Randomly generated coef: {config.function.coef}")
 
     ##
