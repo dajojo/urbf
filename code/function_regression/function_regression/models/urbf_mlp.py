@@ -39,7 +39,6 @@ class URBFMLP(torch.nn.Module):
         if isinstance(self.config.sample_rates, int):
             self.config.sample_rates = [self.config.sample_rates] * self.config.in_features
      
-
         self.layers = []
 
         if self.config.use_urbf:

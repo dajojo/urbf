@@ -56,3 +56,10 @@ Split & Merge:
       4. repeat
 2. Split & Merge
    1. Which Gaussians are split and which are merged?
+
+
+
+#### Wiki
+register_full_backward_hook:
+These hooks will give you the gradient wrt to each input and each output of the forward function.
+And you can optionally return new values to be used instead of the given input gradients.

@@ -79,6 +79,7 @@ class SGDTrainer:
                 # Zero the parameter gradients
                 optimizer.zero_grad()
 
+                #inputs.require_grad = True
                 # Forward pass: compute the model output
                 outputs = model(inputs.to(device))#.squeeze()
 
