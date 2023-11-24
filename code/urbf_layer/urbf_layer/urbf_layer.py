@@ -4,7 +4,7 @@ from typing import List,Tuple
 import torch.nn as nn
 
 class URBFLayer(torch.nn.Module):
-    def __init__(self,in_features:int,out_features:int,ranges:List[Tuple[int]],use_split_merge=True):
+    def __init__(self,in_features:int,out_features:int,ranges:List[Tuple[int]],use_split_merge=True,split_merge_temperature=1/10):
         super().__init__()
 
         self.in_features = in_features
@@ -12,7 +12,7 @@ class URBFLayer(torch.nn.Module):
         self.ranges = ranges
 
         self.use_split_merge = use_split_merge
-        self.split_merge_factor = torch.ones(self.in_features) * 10
+        self.split_merge_temperature = torch.ones(self.in_features) * split_merge_temperature
 
         assert len(self.ranges) == self.in_features, "Number of range pairs must match the number of input features"
         assert (self.out_features % self.in_features) == 0, "out_features must be a multiple of in_features"
@@ -63,6 +63,14 @@ class URBFLayer(torch.nn.Module):
 
 
     def check_for_split_merge(self):
+        #### check_for_split_merge
+        #   Currently the outcome is dependent on the BatchSize since max 1 split & merge per input neuron is performed after every batch
+        #   Should we enable to perform multiple Split & Merge operations per backward pass per input neuron?
+        #   But then, we might run into issues since too much is happening?
+        #   We also need a way to update the accumulated grad values..
+
+
+
         print("check_for_split_merge")
 
         for in_feature in range(self.in_features):
@@ -71,9 +79,9 @@ class URBFLayer(torch.nn.Module):
             max_val,max_idx = out_feats.max(dim=0)
             min_val,min_idx = out_feats.min(dim=0)
             
-            if max_val > self.split_merge_factor[in_feature]*min_val:
+            if max_val*self.split_merge_temperature[in_feature] > min_val:
                 # Perform Split and Merge!
-                self.split_merge_factor[in_feature] = self.split_merge_factor[in_feature]
+                self.split_merge_temperature[in_feature] = self.split_merge_temperature[in_feature]/2 #### should we treat it as a 'Temperature' which is cooling down to reduce rearrangements later during training?
 
                 max_mean = self.means[max_idx + in_feature*self.out_features_per_in_feature]
                 self.means[min_idx + in_feature*self.out_features_per_in_feature] = max_mean - self.vars[max_idx + in_feature*self.out_features_per_in_feature]/2 #self.means[min_idx + in_feature*self.out_features_per_in_feature] + 

@@ -16,11 +16,10 @@ config = eu.AttrDict(
         split_merge_temperature=<split_merge_temperature>
         ),
 
-    function = eu.AttrDict(
-        cls=function_regression.functions.<function>,
-        difficulty=<difficulty>,
-        in_features=<in_features>,
-        ranges=<func_ranges>
+
+    dataset = eu.AttrDict(
+        cls=function_regression.datasets.<dataset>,
+        name=<name>
         ),
     
     trainer = eu.AttrDict(

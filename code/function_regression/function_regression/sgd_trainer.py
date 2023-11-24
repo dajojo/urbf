@@ -58,6 +58,22 @@ class SGDTrainer:
             model.train()  # Set the model to training mode
             running_train_loss = 0.0
             
+
+            if hasattr(model.layers[0],'means'):
+                means = model.layers[0].state_dict()["means"].cpu().detach().numpy()
+                print(f"Updated mean: {means}")
+
+                for idx,mean in enumerate(means):
+                    log.add_value(f"mean{idx}",mean)
+
+            if hasattr(model.layers[0],'vars'):
+                vars = model.layers[0].state_dict()["vars"].cpu().detach().numpy()
+                print(f"Updated vars: {vars}")
+
+                for idx,var in enumerate(vars):
+                    log.add_value(f"var{idx}",var)
+
+
             for i, (inputs, labels) in enumerate(train_loader):
 
                 # Zero the parameter gradients
@@ -81,21 +97,7 @@ class SGDTrainer:
             # Print statistics after every epoch
             log.add_value('train_loss',running_train_loss)
 
-            if hasattr(model.layers[0],'means'):
-                means = model.layers[0].state_dict()["means"].cpu().detach().numpy()
-                print(f"Updated mean: {means}")
-
-                for idx,mean in enumerate(means):
-                    log.add_value(f"mean{idx}",mean)
-
             eu.misc.update_status(f'Epoch {epoch + 1}/{self.config.n_epochs} - Train Loss: {running_train_loss/len(train_loader):.4f}')
-
-            if hasattr(model.layers[0],'vars'):
-                vars = model.layers[0].state_dict()["vars"].cpu().detach().numpy()
-                print(f"Updated vars: {vars}")
-
-                for idx,var in enumerate(vars):
-                    log.add_value(f"var{idx}",var)
         
 
             if test_loader != None:
