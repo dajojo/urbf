@@ -12,13 +12,13 @@ class GaussianMixtureFunction(BaseFunction):
         # defines how long a certain action is kept
         def_config.in_features = 2
         def_config.ranges = (-5,5)
-        
+        def_config.peak_distr_ranges = (-5,5)
         def_config.difficulty = 2
         def_config.means = np.array([[1,1],[-1,-1]])
         def_config.vars = np.array([1,1])
         def_config.coef = np.array([1,1])
         
-        def_config.sample_rates = [10,10]
+        def_config.sample_rates = [5,5]
 
         return def_config
 
@@ -30,6 +30,9 @@ class GaussianMixtureFunction(BaseFunction):
 
         if isinstance(self.config.ranges, tuple):
             self.config.ranges = [self.config.ranges] * self.config.in_features
+
+        if isinstance(self.config.peak_distr_ranges, tuple):
+            self.config.peak_distr_ranges = [self.config.peak_distr_ranges] * self.config.in_features
 
         print(self.config.means)
         print(self.config.vars)

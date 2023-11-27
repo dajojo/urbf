@@ -23,6 +23,8 @@ class URBFMLP(torch.nn.Module):
         def_config.use_split_merge = True
         def_config.split_merge_temperature = 0.1
         def_config.dropout_rate = 0
+        def_config.use_back_tray = False
+        def_config.back_tray_ratio = 0.5
 
         return def_config
 
@@ -42,7 +44,7 @@ class URBFMLP(torch.nn.Module):
         self.layers = []
 
         if self.config.use_urbf:
-            self.layers.append(URBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0],ranges=self.config.ranges,use_split_merge = self.config.use_split_merge,split_merge_temperature=self.config.split_merge_temperature))
+            self.layers.append(URBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0],ranges=self.config.ranges,use_split_merge = self.config.use_split_merge,split_merge_temperature=self.config.split_merge_temperature, use_back_tray=self.config.use_back_tray, back_tray_ratio=self.config.back_tray_ratio))
         else:
             self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
             self.layers.append(torch.nn.ReLU())

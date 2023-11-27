@@ -57,12 +57,15 @@ def run_experiment(config=None, **kwargs):
     if isinstance(config.function.ranges,tuple):
         config.function.ranges = [config.function.ranges] * config.function.in_features        
 
+    if isinstance(config.function.peak_distr_ranges,tuple):
+        config.function.peak_distr_ranges = [config.function.peak_distr_ranges] * config.function.in_features        
+
 
     # set random seeds with seed defined in the config
     eu.misc.seed(config)
 
     if "means" not in config.function:
-        config.function.means = sample_random_arrays(config.function.difficulty,config.function.ranges)
+        config.function.means = sample_random_arrays(config.function.difficulty,config.function.peak_distr_ranges)
         print(f"Randomly generated mean: {config.function.means}")
 
     if "vars" not in config.function:
@@ -78,7 +81,7 @@ def run_experiment(config=None, **kwargs):
     trainer = eu.misc.create_object_from_config(config.trainer)
     model = eu.misc.create_object_from_config(config.model)
     
-    sample_points, sample_values = function.generate_samples()
+    sample_points, sample_values = function.generate_samples(config.function.peak_distr_ranges)
     print(f"Sampled {sample_values.shape}")
     
     # Split the dataset into training (60%), validation (20%), and test (20%)

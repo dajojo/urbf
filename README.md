@@ -60,6 +60,16 @@ Split & Merge:
 
 
 #### Wiki
-register_full_backward_hook:
-These hooks will give you the gradient wrt to each input and each output of the forward function.
-And you can optionally return new values to be used instead of the given input gradients.
+`register_full_backward_hook`:
+1. `grad_outputs`: 
+   - These are the gradients with respect to the output of the module.
+   - Mathematically, if you consider a module `M` which takes an input `x` and produces an output `y`: `y = M(x)`, then during the backward pass, `grad_outputs` is the gradient of the loss `L` with respect to `y`. This is denoted as d`L`/d`y` .
+   - -> `grad_outputs` tells you how much a change in the output of the module will affect the change in the loss.
+
+2. `grad_inputs`:
+   - These are the gradients with respect to the input of the module.
+   - Continuing with the same module `M`, `grad_inputs` would be the gradient of the loss `L` with respect to the input `x`. This is denoted as d`L`/d`x`.
+   - This represents how much changing the input of the module will affect the loss. It's what is backpropagated to the previous layers in a neural network.
+
+`tensor.grad`:
+ - By using the grad attribute of a param tensor we can investigate the gradient of a specific param such as mean or var

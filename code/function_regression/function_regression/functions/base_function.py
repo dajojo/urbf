@@ -12,13 +12,16 @@ class BaseFunction():
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         raise NotImplementedError
 
-    def generate_samples(self) -> Tuple:
+    def generate_samples(self,ranges=None) -> Tuple:
 
-        assert len(self.config.ranges) == self.config.in_features, "Sample Range elements must match the number of in_features"
+        if ranges == None:
+            ranges = self.config.ranges
+
+        assert len(ranges) == self.config.in_features, "Sample Range elements must match the number of in_features"
         assert len(self.config.sample_rates) == self.config.in_features, "Sample Rate elements must match the number of in_features"
 
         # Generating a meshgrid for multi-dimensional sampling
-        axes = [np.arange(r[0], r[1], 1/s) for r, s in zip(self.config.ranges, self.config.sample_rates)]
+        axes = [np.arange(r[0], r[1], 1/s) for r, s in zip(ranges, self.config.sample_rates)]
         meshgrid = np.meshgrid(*axes, indexing='ij')
         flat_grid = np.stack([axis.flat for axis in meshgrid], axis=-1)
         
@@ -26,7 +29,7 @@ class BaseFunction():
         values = np.array([self.__call__(point) for point in flat_grid])
 
 
-        return np.transpose(np.array(meshgrid),(1,2,0)).reshape((-1,len(self.config.ranges))), values.reshape([*meshgrid[0].shape,1]).reshape((-1,1))
+        return np.transpose(np.array(meshgrid),(1,2,0)).reshape((-1,len(ranges))), values.reshape([*meshgrid[0].shape,1]).reshape((-1,1))
     
     def plot(self):
 
