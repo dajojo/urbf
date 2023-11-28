@@ -10,22 +10,25 @@ config = eu.AttrDict(
         cls=function_regression.models.<model>,
         hidden_features=<hidden_features>,
         use_urbf=<use_urbf>,
+        ranges=<model_ranges>,
+        dropout_rate=<dropout_rate>,
         use_split_merge=<use_split_merge>,
         split_merge_temperature=<split_merge_temperature>,
-        ranges=<model_ranges>
+        grad_source=<grad_source>
         ),
 
     function = eu.AttrDict(
         cls=function_regression.functions.<function>,
         difficulty=<difficulty>,
         in_features=<in_features>,
-        ranges=<func_ranges>
+        ranges=<func_ranges>,
+        peak_distr_ranges=<func_distr_ranges>
         ),
     
     trainer = eu.AttrDict(
         cls=function_regression.<trainer>,
         learning_rate=<learning_rate>,
-        urbf_learning_rate=<urbf_learning_rate>,
+        urbf_learning_rate = <urbf_learning_rate>,
         n_epochs=<n_epochs>,
         batch_size=<batch_size>),
 )

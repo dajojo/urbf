@@ -11,8 +11,7 @@ config = eu.AttrDict(
         hidden_features=<hidden_features>,
         use_urbf=<use_urbf>,
         ranges=<model_ranges>,
-        dropout_rate=<dropout_rate>,
-        use_back_tray=<use_split_merge>,
+        use_back_tray=<use_back_tray>,
         back_tray_ratio=<back_tray_ratio>,
         split_merge_temperature=<split_merge_temperature>
         ),
@@ -22,7 +21,7 @@ config = eu.AttrDict(
         difficulty=<difficulty>,
         in_features=<in_features>,
         ranges=<func_ranges>,
-        peak_distr_ranges=<func_distr_ranges>
+        peak_distr_ranges=<peak_distr_ranges>
         ),
     
     trainer = eu.AttrDict(
