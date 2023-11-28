@@ -7,7 +7,7 @@ from typing import Any, List,Tuple
 from sklearn.model_selection import train_test_split
 import exputils as eu
 import exputils.data.logging as log
-
+import time
 
 def sample_random_arrays(n: int, ranges: List[Tuple[float, float]]) -> np.ndarray:
     """
@@ -33,12 +33,23 @@ def sample_random_arrays(n: int, ranges: List[Tuple[float, float]]) -> np.ndarra
 
 
 def run_data_experiment(config=None, **kwargs):
+    start_time = time.time()
+
+
     # define the default configuration
     default_config = eu.AttrDict(
-        model = eu.AttrDict(cls=URBFMLP),
+        model = eu.AttrDict(cls=URBFMLP,            
+            in_features=2,
+            use_urbf=False,
+            ranges=(-5,5),   
+            use_split_merge=False,
+            split_merge_temperature=0.1,     
+            use_back_tray=False,
+            back_tray_ratio = 0.5),
         dataset = eu.AttrDict(
             cls=PMLBDataset,
-            name="1028_SWD"),
+            name="feynman_III_12_43",
+            in_features=2),
         trainer = eu.AttrDict(cls=SGDTrainer),
         seed = 123,
         test_split_size = 0.2,
@@ -75,5 +86,13 @@ def run_data_experiment(config=None, **kwargs):
 
     model = trainer.train(model,train_dataset,test_dataset)
     
+    end_time = time.time()
+
+    duration = end_time - start_time
+
+    print(f"Duration: {time.strftime('%H:%M:%S', time.gmtime(duration))}s")
+    log.add_value('duration', duration)
+    log.save()
+
     return model
 

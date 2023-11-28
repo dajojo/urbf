@@ -9,7 +9,7 @@ class PMLBDataset():
     def default_config():
         def_config = eu.AttrDict()
         def_config.name = "1028_SWD"
-
+        def_config.in_features = 10
         return def_config
 
     def __init__(self, config=None, **kwargs):
@@ -17,6 +17,7 @@ class PMLBDataset():
 
 
     def generate_samples(self) -> Tuple:
+        print(f"fetching: {self.config.name}")
         X,Y = fetch_data(self.config.name, return_X_y=True,)
         Y = np.expand_dims(Y, axis=1)
 

@@ -12,14 +12,17 @@ config = eu.AttrDict(
         use_urbf=<use_urbf>,
         ranges=<model_ranges>,
         dropout_rate=<dropout_rate>,
-        use_split_merge=<use_split_merge>,
+        use_back_tray=<use_split_merge>,
+        back_tray_ratio=<back_tray_ratio>,
         split_merge_temperature=<split_merge_temperature>
         ),
 
-
-    dataset = eu.AttrDict(
-        cls=function_regression.datasets.<dataset>,
-        name=<name>
+    function = eu.AttrDict(
+        cls=function_regression.functions.<function>,
+        difficulty=<difficulty>,
+        in_features=<in_features>,
+        ranges=<func_ranges>,
+        peak_distr_ranges=<func_distr_ranges>
         ),
     
     trainer = eu.AttrDict(
@@ -29,3 +32,4 @@ config = eu.AttrDict(
         n_epochs=<n_epochs>,
         batch_size=<batch_size>),
 )
+

@@ -9,6 +9,8 @@ from torch.utils.data import DataLoader
 import torch
 import exputils as eu
 import exputils.data.logging as log
+import time
+import exputils.data.logging as log
 
 
 def sample_random_arrays(n: int, ranges: List[Tuple[float, float]]) -> np.ndarray:
@@ -35,15 +37,33 @@ def sample_random_arrays(n: int, ranges: List[Tuple[float, float]]) -> np.ndarra
 
 
 def run_experiment(config=None, **kwargs):
+
+    start_time = time.time()
+
+
     # define the default configuration
     default_config = eu.AttrDict(
-        model = eu.AttrDict(cls=URBFMLP),
+        model = eu.AttrDict(
+            cls=URBFMLP,
+            in_features=2,
+            use_urbf=False,
+            ranges=(-5,5),   
+            use_split_merge=False,
+            split_merge_temperature=0.1,     
+            use_back_tray=False,
+            back_tray_ratio = 0.5),
         function = eu.AttrDict(
             cls=GaussianMixtureFunction,
             in_features=2,
             difficulty=2,
-            ranges=[(-5,5),(-5,5)],),
-        trainer = eu.AttrDict(cls=SGDTrainer),
+            ranges=(-5,5),
+            peak_distr_ranges = (-5,5)),
+        trainer = eu.AttrDict(
+            cls=SGDTrainer,        
+            learning_rate=0.1,
+            urbf_learning_rate=1,
+            n_epochs=1000,
+            batch_size=64),
         seed = 123,
         test_split_size = 0.2,
         val_split_size = 0.2,
@@ -97,8 +117,15 @@ def run_experiment(config=None, **kwargs):
 
     model = trainer.train(model,train_dataset,test_dataset)    
     #model.plot()
-
-    ### Eval the model on the test split
     
+    end_time = time.time()
+
+    duration = end_time - start_time
+
+    print(f"Duration: {time.strftime('%H:%M:%S', time.gmtime(duration))}s")
+    log.add_value('duration', duration)
+
+    log.save()
+
     return model
 

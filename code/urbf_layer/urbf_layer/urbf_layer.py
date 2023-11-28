@@ -207,7 +207,7 @@ class RBFLayer(torch.nn.Module):
             print("using backtray...")
             self.active_out_features_per_in_feature = (torch.ones(len(self.init_ranges))* int(out_features_per_in_feature*back_tray_ratio)).to(torch.int)
         else:
-            self.active_out_features_per_in_feature = torch.ones(len(self.init_ranges)) * out_features_per_in_feature
+            self.active_out_features_per_in_feature = (torch.ones(len(self.init_ranges)) * out_features_per_in_feature).to(torch.int)
 
 
         means = torch.zeros_like(self.means)

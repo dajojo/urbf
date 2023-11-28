@@ -9,7 +9,10 @@ config = eu.AttrDict(
     model = eu.AttrDict(
         cls=function_regression.models.<model>,
         hidden_features=<hidden_features>,
-        use_urbf=<use_urbf>
+        use_urbf=<use_urbf>,
+        use_split_merge=<use_split_merge>,
+        split_merge_temperature=<split_merge_temperature>,
+        in_features=<in_features>,
         ),
 
     function = eu.AttrDict(
@@ -21,6 +24,7 @@ config = eu.AttrDict(
     trainer = eu.AttrDict(
         cls=function_regression.<trainer>,
         learning_rate=<learning_rate>,
+        urbf_learning_rate = <urbf_learning_rate>,
         n_epochs=<n_epochs>,
         batch_size=<batch_size>),
 )
