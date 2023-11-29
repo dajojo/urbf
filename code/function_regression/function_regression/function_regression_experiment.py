@@ -101,7 +101,7 @@ def run_experiment(config=None, **kwargs):
     trainer = eu.misc.create_object_from_config(config.trainer)
     model = eu.misc.create_object_from_config(config.model)
     
-    sample_points, sample_values = function.generate_samples(config.function.peak_distr_ranges)
+    sample_points, sample_values = function.generate_samples(config.function.ranges)
     print(f"Sampled {sample_values.shape}")
     
     # Split the dataset into training (60%), validation (20%), and test (20%)
@@ -124,7 +124,6 @@ def run_experiment(config=None, **kwargs):
 
     print(f"Duration: {time.strftime('%H:%M:%S', time.gmtime(duration))}s")
     log.add_value('duration', duration)
-
     log.save()
 
     return model

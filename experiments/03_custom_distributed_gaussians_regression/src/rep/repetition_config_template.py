@@ -12,6 +12,7 @@ config = eu.AttrDict(
         use_urbf=<use_urbf>,
         use_split_merge=<use_split_merge>,
         split_merge_temperature=<split_merge_temperature>,
+        in_features=<in_features>,
         ranges=<model_ranges>
         ),
 
@@ -19,7 +20,8 @@ config = eu.AttrDict(
         cls=function_regression.functions.<function>,
         difficulty=<difficulty>,
         in_features=<in_features>,
-        ranges=<func_ranges>
+        ranges=<func_ranges>,
+        peak_distr_ranges=<peak_distr_ranges>
         ),
     
     trainer = eu.AttrDict(
