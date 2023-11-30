@@ -41,7 +41,7 @@ def run_data_experiment(config=None, **kwargs):
         model = eu.AttrDict(cls=URBFMLP,            
             in_features=2,
             use_urbf=False,
-            ranges=(-5,5),   
+            ranges=(-10,5),   
             use_split_merge=False,
             split_merge_temperature=0.1,     
             use_back_tray=False,
@@ -71,6 +71,8 @@ def run_data_experiment(config=None, **kwargs):
     dataset = eu.misc.create_object_from_config(config.dataset)
     trainer = eu.misc.create_object_from_config(config.trainer)
     model = eu.misc.create_object_from_config(config.model)
+
+    print(config.model)
     
     sample_points, sample_values = dataset.generate_samples()
     print(f"Sampled {sample_values.shape}")

@@ -2,6 +2,7 @@ from typing import Any, List,Tuple
 import numpy as np
 import exputils as eu
 from pmlb import fetch_data
+import plotly.graph_objects as go
 
 class PMLBDataset():
 
@@ -24,3 +25,28 @@ class PMLBDataset():
         print(f"Sampled X:{X.shape} Y:{Y.shape} from {self.config.name}")
 
         return X,Y
+    
+    def plot(self):
+
+        points,values = self.generate_samples()
+
+        assert len(points.shape) - 1 <= 3, "Can only plot functions for dim <= 3" 
+
+
+        print(points.shape)
+        print(values.shape)
+
+        fig = go.Figure(data=[go.Scatter3d(
+            x=points[:, 0],
+            y=points[:, 1],
+            z=values[:, 0],
+            mode='markers',
+            marker=dict(
+                size=2,
+                color=values[:, 0],  # Coloring based on the values
+                colorscale='Viridis',  # Color scale
+                opacity=0.8
+            )
+        )])
+
+        fig.show()
