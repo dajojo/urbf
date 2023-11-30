@@ -1,1 +1,2 @@
 from .gaussian_mixture_function import GaussianMixtureFunction
+from .polynomial_function import PolynomialFunction

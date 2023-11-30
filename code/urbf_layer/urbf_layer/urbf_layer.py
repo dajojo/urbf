@@ -200,6 +200,7 @@ class RBFLayer(torch.nn.Module):
 
         self.means = torch.nn.Parameter(torch.zeros(self.n_features))
         self.vars = torch.nn.Parameter(torch.ones(self.n_features))
+        self.coefs = torch.nn.Parameter(torch.ones(self.n_features))
 
         self.active = torch.nn.Parameter(torch.zeros(self.n_features).bool(),requires_grad=False)
 
@@ -211,16 +212,38 @@ class RBFLayer(torch.nn.Module):
 
 
         means = torch.zeros_like(self.means)
+        vars =  torch.zeros_like(self.vars)
+
         for dim, dim_range in enumerate(self.init_ranges):
             dim_min,dim_max = dim_range
+            
+            abs_range = dim_max - dim_min
 
-            step = (dim_max - dim_min)/(self.active_out_features_per_in_feature[dim] - 1)
-            print(self.active_out_features_per_in_feature[dim])
-            for out_feat_dim in range(self.active_out_features_per_in_feature[dim]):
-                means[dim*self.out_features_per_in_feature + out_feat_dim] = dim_min + step*out_feat_dim
-                self.active[dim*self.out_features_per_in_feature + out_feat_dim] = True
+            level = 1
+            left_features = self.out_features_per_in_feature
+
+            while left_features > 0:
+                for neuron in range(level):
+                    means[(dim + 1)*self.out_features_per_in_feature - left_features] = dim_min + (abs_range/(level*2))*(neuron*2 + 1)
+                    vars[(dim + 1)*self.out_features_per_in_feature - left_features] = abs_range/(level * 2)
+
+                    self.active[(dim + 1)*self.out_features_per_in_feature - left_features] = True
+
+                    left_features = left_features - 1
+
+                level = level + 1
+
+                print(f"Entering level {level} with left features {left_features}")
+
+            # step = (dim_max - dim_min)/(self.active_out_features_per_in_feature[dim] - 1)
+            # for out_feat_dim in range(self.active_out_features_per_in_feature[dim]):
+            #    means[dim*self.out_features_per_in_feature + out_feat_dim] = dim_min + step*out_feat_dim
+            #    vars[dim*self.out_features_per_in_feature + out_feat_dim] = step/2
+               
+            #    self.active[dim*self.out_features_per_in_feature + out_feat_dim] = True
         
         self.means = torch.nn.Parameter(means)
+        self.vars = torch.nn.Parameter(vars)
 
 
     def forward(self,x):
@@ -230,5 +253,5 @@ class RBFLayer(torch.nn.Module):
             print(f"deactivating... {x.shape}")
             x = x * self.active[None,:]
 
-        return torch.exp(-0.5 * ((x - self.means) / self.vars) ** 2)
+        return torch.exp(-0.5 * ((x - self.means) / self.vars) ** 2) * self.coefs
     

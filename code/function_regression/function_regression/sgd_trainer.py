@@ -71,6 +71,13 @@ class SGDTrainer:
                 for idx,var in enumerate(vars):
                     log.add_value(f"var{idx}",var)
 
+                coefs = model.layers[0].rbf_layer.state_dict()["coefs"].cpu().detach().numpy()
+                print(f"Updated coefs: {coefs}")
+
+                for idx,coef in enumerate(coefs):
+                    log.add_value(f"coef{idx}",coef)
+
+
 
             for i, (inputs, labels) in enumerate(train_loader):
 

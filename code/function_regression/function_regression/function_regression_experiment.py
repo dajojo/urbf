@@ -56,6 +56,7 @@ def run_experiment(config=None, **kwargs):
             cls=GaussianMixtureFunction,
             in_features=2,
             difficulty=2,
+            #coef=(-5,5),
             ranges=(-5,5),
             peak_distr_ranges = (-5,5)),
         trainer = eu.AttrDict(
@@ -80,21 +81,20 @@ def run_experiment(config=None, **kwargs):
     if isinstance(config.function.peak_distr_ranges,tuple):
         config.function.peak_distr_ranges = [config.function.peak_distr_ranges] * config.function.in_features        
 
-
     # set random seeds with seed defined in the config
     eu.misc.seed(config)
 
     if "means" not in config.function:
-        config.function.means = sample_random_arrays(config.function.difficulty,config.function.peak_distr_ranges)
-        print(f"Randomly generated mean: {config.function.means}")
+        config.function.means = sample_random_arrays(config.function.difficulty, config.function.peak_distr_ranges)
+        print(f"Randomly generated mean: {config.function.means} {config.function.peak_distr_ranges}")
 
     if "vars" not in config.function:
         config.function.vars = np.squeeze(sample_random_arrays(config.function.difficulty,[(0.5,1)]), axis=1)
         print(f"Randomly generated vars: {config.function.vars}")
 
     if "coef" not in config.function:
-        config.function.coef = np.squeeze(sample_random_arrays(config.function.difficulty,[(0.5,1)]), axis=1)
-        print(f"Randomly generated coef: {config.function.coef}")
+        config.function.coef = sample_random_arrays(config.function.difficulty, config.function.peak_distr_ranges)
+        print(f"Randomly generated coef: {config.function.coef} {config.function.peak_distr_ranges}")
 
     ##
     function = eu.misc.create_object_from_config(config.function)
