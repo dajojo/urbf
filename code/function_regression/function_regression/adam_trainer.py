@@ -14,7 +14,7 @@ class AdamTrainer:
         def_config.urbf_learning_rate = None
         def_config.n_epochs = 100
         def_config.batch_size = 32
-        def_config.device = "cpu"
+        def_config.device = "cuda"
 
         return def_config
     

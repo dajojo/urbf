@@ -15,7 +15,7 @@ class URBFLayer(torch.nn.Module):
                  split_merge_temperature=1/10,
                  use_back_tray=False,
                  back_tray_ratio = 0.5,
-                 grad_signal: Literal["input","output","mean"] = "input" ):
+                 grad_signal: Literal["input","output","mean"] = "input"):
         super().__init__()
 
         self.in_features = in_features
@@ -54,11 +54,11 @@ class URBFLayer(torch.nn.Module):
         #grad_signal = self.rbf_layer.means.grad.unsqueeze(0)#grad_input[0]#self.rbf_layer.means.grad
 
         if self.grad_signal == 'input':
-            grad_signal = grad_input[0]
+            grad_signal = grad_input[0].cpu().detach()
         elif self.grad_signal == 'output':
-            grad_signal = grad_output[0]
+            grad_signal = grad_output[0].cpu().detach()
         elif self.grad_signal == 'mean':
-            grad_signal = self.rbf_layer.means.grad.unsqueeze(0)
+            grad_signal = self.rbf_layer.means.grad.unsqueeze(0).cpu().detach()
         else:
             raise f"Unexpected grad signal: {self.grad_signal}"
 
@@ -72,7 +72,7 @@ class URBFLayer(torch.nn.Module):
         elif self.use_back_tray:
             self.check_for_add_from_back_tray()
 
-        self.means_hist.append(self.rbf_layer.means.detach().clone())
+        self.means_hist.append(self.rbf_layer.means.cpu().detach().clone())
         self.acc_grad_hist.append(self.acc_grad)
 
 
@@ -101,7 +101,7 @@ class URBFLayer(torch.nn.Module):
 
                 self.acc_grad[in_feature*self.out_features_per_in_feature:(in_feature+1)*self.out_features_per_in_feature] = torch.zeros(self.out_features_per_in_feature)
 
-
+    #### Deprecated...
     def check_for_add_from_back_tray(self):
 
         ### Idea: Use only a part of the Gaussians and keep the rest in a 'Back Tray'
@@ -224,6 +224,10 @@ class RBFLayer(torch.nn.Module):
 
             while left_features > 0:
                 for neuron in range(level):
+
+                    if left_features == 0:
+                        break
+
                     means[(dim + 1)*self.out_features_per_in_feature - left_features] = dim_min + (abs_range/(level*2))*(neuron*2 + 1)
                     vars[(dim + 1)*self.out_features_per_in_feature - left_features] = abs_range/(level * 2)
 
