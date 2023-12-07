@@ -15,7 +15,7 @@ class AdamTrainer:
         def_config.n_epochs = 100
         def_config.batch_size = 32
         def_config.device = "cuda"
-
+        def_config.use_adaptive_range = False
         return def_config
     
 
@@ -41,7 +41,7 @@ class AdamTrainer:
         # Define an optimizer and a loss function
         optimizer = torch.optim.Adam([{'params':model.params.mlp.parameters()},
                                      {'params':model.params.urbf.parameters(), 'lr': self.config.urbf_learning_rate,'weight_decay':
-                                    0}], lr=self.config.learning_rate,weight_decay=0.3)
+                                    0}], lr=self.config.learning_rate)
         
         # Define an optimizer and a loss function
         #optimizer = torch.optim.SGD([model.parameters()], lr=self.config.learning_rate)
@@ -71,6 +71,12 @@ class AdamTrainer:
 
                 for idx,var in enumerate(vars):
                     log.add_value(f"var{idx}",var)
+
+                coefs = model.layers[0].rbf_layer.state_dict()["coefs"].cpu().detach().numpy()
+                print(f"Updated coefs: {coefs}")
+
+                for idx,coef in enumerate(coefs):
+                    log.add_value(f"coef{idx}",coef)
 
 
             for i, (inputs, labels) in enumerate(train_loader):
@@ -118,6 +124,7 @@ class AdamTrainer:
                     # Accumulate the running loss
                     running_test_loss += loss.item()
                 log.add_value('test_loss',running_test_loss)
+            
             log.add_value('epoch', epoch)
 
 

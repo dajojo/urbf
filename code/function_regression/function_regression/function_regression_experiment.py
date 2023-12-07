@@ -6,7 +6,6 @@ import numpy as np
 from typing import Any, List,Tuple
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
-import torch
 import exputils as eu
 import exputils.data.logging as log
 import time
@@ -51,7 +50,8 @@ def run_experiment(config=None, **kwargs):
             use_split_merge=False,
             split_merge_temperature=0.1,     
             use_back_tray=False,
-            back_tray_ratio = 0.5),
+            back_tray_ratio = 0.5,
+            use_adaptive_range=False),
         function = eu.AttrDict(
             cls=GaussianMixtureFunction,
             in_features=2,

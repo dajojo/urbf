@@ -8,14 +8,15 @@ class URBFLayer(torch.nn.Module):
 
 
     def __init__(self,
-                 in_features:int,
-                 out_features:int,
-                 ranges:List[Tuple[int]],
-                 use_split_merge=True,
-                 split_merge_temperature=1/10,
-                 use_back_tray=False,
-                 back_tray_ratio = 0.5,
-                 grad_signal: Literal["input","output","mean"] = "input"):
+                in_features:int,
+                out_features:int,
+                ranges:List[Tuple[int]],
+                use_adaptive_range=False,
+                use_split_merge=True,
+                split_merge_temperature=1/10,
+                use_back_tray=False,
+                back_tray_ratio = 0.5,
+                grad_signal: Literal["input","output","mean"] = "input"):
         super().__init__()
 
         self.in_features = in_features
@@ -28,13 +29,15 @@ class URBFLayer(torch.nn.Module):
         self.split_merge_temperature = torch.ones(self.in_features) * split_merge_temperature
 
         self.use_back_tray = use_back_tray
-
-        assert len(self.ranges) == self.in_features, "Number of range pairs must match the number of input features"
+        self.use_adaptive_range = use_adaptive_range
+    
+        assert self.use_adaptive_range or (len(self.ranges) == self.in_features), "Number of range pairs must match the number of input features"
+        
         assert (self.out_features % self.in_features) == 0, "out_features must be a multiple of in_features"
 
         assert not (use_back_tray and use_split_merge), "Split and Merge and Backtray can not be used at the same time."
 
-        self.rbf_layer = RBFLayer(self.out_features,self.ranges,out_features_per_in_feature=self.out_features_per_in_feature,use_back_tray=use_back_tray,back_tray_ratio=back_tray_ratio)
+        self.rbf_layer = RBFLayer(self.out_features,self.ranges,out_features_per_in_feature=self.out_features_per_in_feature,use_back_tray=use_back_tray,back_tray_ratio=back_tray_ratio,use_adaptive_range=use_adaptive_range)
         self.rbf_layer.register_full_backward_hook(self.backward_hook)
 
 
@@ -170,6 +173,32 @@ class URBFLayer(torch.nn.Module):
 
         x.requires_grad = True          # We use this to make the hook return an input value
 
+        #### 
+
+        if self.use_adaptive_range:
+            
+            min = x.amin(dim=0) ### in_features
+            max = x.amax(dim=0)
+
+            curr_range = torch.stack([min,max],dim=1)
+
+            print(f"Current adaptive range: {self.rbf_layer.adaptive_range}")
+            print(f"Current Batch range: {curr_range}")
+            
+            if self.rbf_layer.adaptive_range == None:
+                #### init the adaptive range
+                self.rbf_layer.adaptive_range = curr_range
+
+            else:
+                delta = curr_range - self.rbf_layer.adaptive_range
+
+                print(f"Delta: {delta} {delta.shape}")
+                
+                if (delta[:,0] < 0).any() or (delta[:,1] > 0).any():
+                    self.rbf_layer.update_adaptive_range(delta)
+
+                
+
         # reapeat input vector so that every map-neuron gets its accordingly input
         # example: n_neuron_per_inpu = 3 then [[1,2,3]] --> [[1,1,1,2,2,2,3,3,3]]
         x = x.repeat_interleave(repeats=self.out_features_per_in_feature, dim=-1)
@@ -184,12 +213,12 @@ class RBFLayer(torch.nn.Module):
         
     def __init__(self,n_features,
                  init_ranges,
-                 out_features_per_in_feature,                 
+                 out_features_per_in_feature,
+                 use_adaptive_range=False,              
                  use_back_tray=False,
-                 back_tray_ratio = 0.5,) -> None:
+                 back_tray_ratio = 0.5) -> None:
         super().__init__()
 
-        
         self.n_features = n_features
         self.init_ranges = init_ranges
 
@@ -197,6 +226,7 @@ class RBFLayer(torch.nn.Module):
 
         self.use_back_tray = use_back_tray
         self.back_tray_ratio = back_tray_ratio
+        self.use_adaptive_range = use_adaptive_range
 
         self.means = torch.nn.Parameter(torch.zeros(self.n_features))
         self.vars = torch.nn.Parameter(torch.ones(self.n_features))
@@ -204,54 +234,98 @@ class RBFLayer(torch.nn.Module):
 
         self.active = torch.nn.Parameter(torch.zeros(self.n_features).bool(),requires_grad=False)
 
+        self.adaptive_range = None
+
         if use_back_tray:
             print("using backtray...")
-            self.active_out_features_per_in_feature = (torch.ones(len(self.init_ranges))* int(out_features_per_in_feature*back_tray_ratio)).to(torch.int)
+            self.active_out_features_per_in_feature = (torch.ones(self.n_features//self.out_features_per_in_feature)* int(self.out_features_per_in_feature*back_tray_ratio)).to(torch.int)
         else:
-            self.active_out_features_per_in_feature = (torch.ones(len(self.init_ranges)) * out_features_per_in_feature).to(torch.int)
+            self.active_out_features_per_in_feature = (torch.ones(self.n_features//self.out_features_per_in_feature) * self.out_features_per_in_feature).to(torch.int)
 
+        if not self.use_adaptive_range:
+            means = torch.zeros_like(self.means)
+            vars =  torch.zeros_like(self.vars)
 
-        means = torch.zeros_like(self.means)
-        vars =  torch.zeros_like(self.vars)
+            for dim, dim_range in enumerate(self.init_ranges):
+                dim_min,dim_max = dim_range
+                
+                abs_range = dim_max - dim_min
 
-        for dim, dim_range in enumerate(self.init_ranges):
-            dim_min,dim_max = dim_range
+                level = 1
+                left_features = self.out_features_per_in_feature
+
+                while left_features > 0:
+                    for neuron in range(level):
+
+                        if left_features == 0:
+                            break
+
+                        means[(dim + 1)*self.out_features_per_in_feature - left_features] = dim_min + (abs_range/(level*2))*(neuron*2 + 1)
+                        vars[(dim + 1)*self.out_features_per_in_feature - left_features] = abs_range/(level * 2)
+
+                        self.active[(dim + 1)*self.out_features_per_in_feature - left_features] = True
+
+                        left_features = left_features - 1
+
+                    level = level + 1
+
+                    print(f"Entering level {level} with left features {left_features}")
             
-            abs_range = dim_max - dim_min
+            self.means = torch.nn.Parameter(means)
+            self.vars = torch.nn.Parameter(vars)
+        else:
+            print("Using adaptive range!!")
 
-            level = 1
-            left_features = self.out_features_per_in_feature
+    def update_adaptive_range(self,delta_range):
+        print("updating adaptive range")
 
-            while left_features > 0:
-                for neuron in range(level):
+        #### 
+        delta_range[:,0][delta_range[:,0] > 0] = 0
+        delta_range[:,1][delta_range[:,1] < 0] = 0
 
-                    if left_features == 0:
-                        break
+        print(f"Cut Delta: {delta_range} {delta_range.shape}")
+        #### Every number non 0 indicates a required change and a neuron assignment if not already covered by a border neuron
 
-                    means[(dim + 1)*self.out_features_per_in_feature - left_features] = dim_min + (abs_range/(level*2))*(neuron*2 + 1)
-                    vars[(dim + 1)*self.out_features_per_in_feature - left_features] = abs_range/(level * 2)
 
-                    self.active[(dim + 1)*self.out_features_per_in_feature - left_features] = True
+        #### Here we have to rearrange the gaussian neurons... 
+        ## 1. Get the min var from the affected input processing neurons
+        ## 2. change its mean to 
 
-                    left_features = left_features - 1
+        with torch.no_grad():
 
-                level = level + 1
+            self.adaptive_range = self.adaptive_range + delta_range
+            print(f"New adaptive range: {self.adaptive_range}")
 
-                print(f"Entering level {level} with left features {left_features}")
+            for dim, dim_range in enumerate(self.adaptive_range):
+                dim_min,dim_max = dim_range
+                
+                abs_range = dim_max - dim_min
 
-            # step = (dim_max - dim_min)/(self.active_out_features_per_in_feature[dim] - 1)
-            # for out_feat_dim in range(self.active_out_features_per_in_feature[dim]):
-            #    means[dim*self.out_features_per_in_feature + out_feat_dim] = dim_min + step*out_feat_dim
-            #    vars[dim*self.out_features_per_in_feature + out_feat_dim] = step/2
-               
-            #    self.active[dim*self.out_features_per_in_feature + out_feat_dim] = True
-        
-        self.means = torch.nn.Parameter(means)
-        self.vars = torch.nn.Parameter(vars)
+                level = 1
+                left_features = self.out_features_per_in_feature
 
+                while left_features > 0:
+                    for neuron in range(level):
+
+                        if left_features == 0:
+                            break
+
+                        self.means[(dim + 1)*self.out_features_per_in_feature - left_features] = dim_min + (abs_range/(level*2))*(neuron*2 + 1)
+                        self.vars[(dim + 1)*self.out_features_per_in_feature - left_features] = abs_range/(level * 2)
+
+                        self.active[(dim + 1)*self.out_features_per_in_feature - left_features] = True
+
+                        left_features = left_features - 1
+
+                    level = level + 1
+
+                    print(f"Entering level {level} with left features {left_features}")
+    
 
     def forward(self,x):
         # calculate gauss activation per map-neuron
+
+        ### B x C
 
         if self.use_back_tray:
             print(f"deactivating... {x.shape}")

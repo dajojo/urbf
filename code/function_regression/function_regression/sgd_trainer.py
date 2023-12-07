@@ -15,7 +15,7 @@ class SGDTrainer:
         def_config.n_epochs = 100
         def_config.batch_size = 32
         def_config.device = "cuda"
-
+        def_config.use_adaptive_range = False
         return def_config
     
 
