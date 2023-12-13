@@ -15,6 +15,7 @@ config = eu.AttrDict(
         in_features=<in_features>,
         ranges=<model_ranges>,
         use_adaptive_range=<use_adaptive_range>,
+        use_dynamic_architecture=<use_dynamic_architecture>
         ),
 
     dataset = eu.AttrDict(

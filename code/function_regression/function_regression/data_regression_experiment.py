@@ -8,6 +8,8 @@ from sklearn.model_selection import train_test_split
 import exputils as eu
 import exputils.data.logging as log
 import time
+from pmlb import classification_dataset_names, regression_dataset_names
+import os
 
 def sample_random_arrays(n: int, ranges: List[Tuple[float, float]]) -> np.ndarray:
     """
@@ -32,9 +34,39 @@ def sample_random_arrays(n: int, ranges: List[Tuple[float, float]]) -> np.ndarra
 
 
 
-def run_data_experiment(config=None, **kwargs):
-    start_time = time.time()
+def run_data_experiments(config=None, **kwargs):
+    if config.dataset.name == "ALL":
+        print("iterate over a list of datasets and replace this field by their name")
+        ### implement checkpoints
+        ### implement logging for different datasets
 
+        datasets = regression_dataset_names[:3]#["1027_ESL","1028_SWD"]
+
+        for dataset in datasets:
+
+            working_dir = eu.DEFAULT_DATA_DIRECTORY+dataset
+            if not os.path.exists(working_dir):
+                os.makedirs(working_dir)
+
+            log_config = eu.AttrDict(
+                directory = working_dir,
+            )
+            logger = log.Logger(dataset, config=config, log_to_file=True, log_to_tb=False)
+
+
+            config.dataset.name = dataset
+
+            model = run_data_experiment(config=config, **kwargs)
+
+            
+
+def run_data_experiment(config=None,logger=None, **kwargs):
+
+    if logger == None:
+        logger = log
+    
+
+    start_time = time.time()
 
     # define the default configuration
     default_config = eu.AttrDict(
@@ -90,15 +122,15 @@ def run_data_experiment(config=None, **kwargs):
     train_dataset = FunctionSampleDataset(train_points, train_values)
     test_dataset = FunctionSampleDataset(test_points, test_values)
 
-    model = trainer.train(model,train_dataset,test_dataset)
+    model = trainer.train(model,train_dataset,test_dataset,logger=logger)
     
     end_time = time.time()
 
     duration = end_time - start_time
 
     print(f"Duration: {time.strftime('%H:%M:%S', time.gmtime(duration))}s")
-    log.add_value('duration', duration)
-    log.save()
+    logger.add_value('duration', duration)
+    logger.save()
 
     return model
 

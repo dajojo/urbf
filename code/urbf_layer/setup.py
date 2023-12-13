@@ -5,5 +5,5 @@ setup(
     version='0.0.1',
     author='Daniel Jost',
     packages=find_packages(),
-    install_requires=['torch>=2.1','numpy'],
+    install_requires=['torch>=2.0','numpy'],
 )

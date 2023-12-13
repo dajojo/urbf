@@ -28,6 +28,7 @@ class URBFMLP(torch.nn.Module):
         def_config.back_tray_ratio = 0.5
         def_config.grad_source='input'
         def_config.use_adaptive_range = False
+        def_config.use_dynamic_architecture = False
 
         return def_config
 
@@ -47,13 +48,15 @@ class URBFMLP(torch.nn.Module):
         self.layers = []
 
         if self.config.use_urbf:
-            #if self.config.use_adaptive_range:
-            #    self.layers.append(AdaptiveURBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
-            #else:
-            #    self.layers.append(URBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0],ranges=self.config.ranges,use_split_merge = self.config.use_split_merge,split_merge_temperature=self.config.split_merge_temperature, use_back_tray=self.config.use_back_tray, back_tray_ratio=self.config.back_tray_ratio,grad_signal=self.config.grad_source,use_adaptive_range=self.config.use_adaptive_range))
-            self.layers.append(URBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0],ranges=self.config.ranges,use_split_merge = self.config.use_split_merge,split_merge_temperature=self.config.split_merge_temperature, use_back_tray=self.config.use_back_tray, back_tray_ratio=self.config.back_tray_ratio,grad_signal=self.config.grad_source,use_adaptive_range=self.config.use_adaptive_range))
-            
+            if self.config.use_dynamic_architecture:
+                self.layers.append(AdaptiveURBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
+            else:
+                self.layers.append(URBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0],ranges=self.config.ranges,use_split_merge = self.config.use_split_merge,split_merge_temperature=self.config.split_merge_temperature, use_back_tray=self.config.use_back_tray, back_tray_ratio=self.config.back_tray_ratio,grad_signal=self.config.grad_source,use_adaptive_range=self.config.use_adaptive_range))
+                self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
+                self.layers.append(torch.nn.ReLU())
         else:
+            self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
+            self.layers.append(torch.nn.ReLU())
             self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
             self.layers.append(torch.nn.ReLU())
 
@@ -73,9 +76,9 @@ class URBFMLP(torch.nn.Module):
         self.layers = torch.nn.Sequential(*self.layers)
 
         self.params = nn.ModuleDict({
-             'urbf': nn.ModuleList([self.layers[0]]) if self.config.use_urbf else nn.ModuleList([]),
+             'urbf': nn.ModuleList([self.layers[0].rbf_layer]) if self.config.use_urbf else nn.ModuleList([]),
              'mlp': nn.ModuleList(self.layers[1:]) if self.config.use_urbf else nn.ModuleList(self.layers),
-             })
+            })
 
 
     def forward(self,x):
