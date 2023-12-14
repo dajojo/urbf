@@ -13,8 +13,9 @@ config = eu.AttrDict(
         use_split_merge=<use_split_merge>,
         split_merge_temperature=<split_merge_temperature>,
         in_features=<in_features>,
-        ranges=<model_ranges>
-        ),
+        ranges=<model_ranges>,
+        init_with_spektral=<init_with_spektral>,
+    ),
 
     function = eu.AttrDict(
         cls=function_regression.functions.<function>,
@@ -22,12 +23,14 @@ config = eu.AttrDict(
         in_features=<in_features>,
         ranges=<func_ranges>,
         peak_distr_ranges=<peak_distr_ranges>
-        ),
+    ),
     
     trainer = eu.AttrDict(
         cls=function_regression.<trainer>,
         learning_rate=<learning_rate>,
         urbf_learning_rate=<urbf_learning_rate>,
         n_epochs=<n_epochs>,
-        batch_size=<batch_size>),
+        batch_size=<batch_size>,        
+        device="cpu",
+),
 )

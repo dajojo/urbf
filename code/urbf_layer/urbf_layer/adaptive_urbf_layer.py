@@ -173,7 +173,7 @@ class AdaptiveURBFLayer(torch.nn.Module):
                 self.rbf_layer.means[slot_idx].data = mean
                 self.rbf_layer.vars[slot_idx].data = var
 
-                self.expansion_mapping[slot_idx,max_in_idx] = 0.5
+                self.expansion_mapping[slot_idx,max_in_idx] = 1
 
                 print(f"Growing at: {slot_idx} set weight from: {self.linear_layer.weight[max_neuron_idx,slot_idx]} -> {linear_layer_grad_output_corr[max_in_idx,max_prototype_idx,max_neuron_idx]}")
 
@@ -299,7 +299,7 @@ class AdaptiveRBFLayer(torch.nn.Module):
     def forward(self,x):
         ### B x C
 
-        y = torch.exp(-0.5 * ((x - self.means) / self.vars) ** 2)
+        y = torch.exp(-0.5 * ((x - self.means) / self.vars) ** 2) #### RENAME var to std!!!
         #### Reintroduce the scaling factor???
         y = y * 1 / (self.vars.abs() * math.sqrt(2 * math.pi))
 

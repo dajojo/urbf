@@ -24,7 +24,10 @@ class SGDTrainer:
         self.config = eu.combine_dicts(kwargs, config, self.default_config())
 
 
-    def train(self,model,train_dataset:Dataset,test_dataset:Union[None,Dataset] = None):
+    def train(self,model,train_dataset:Dataset,test_dataset:Union[None,Dataset] = None,logger=None):
+        if logger == None:
+            logger = log
+        
         train_loader = DataLoader(train_dataset, batch_size=self.config.batch_size, shuffle=True)
 
         if test_dataset != None:
@@ -63,19 +66,19 @@ class SGDTrainer:
                 print(f"Updated mean: {means}")
 
                 for idx,mean in enumerate(means):
-                    log.add_value(f"mean{idx}",mean)
+                    logger.add_value(f"mean{idx}",mean)
 
                 vars = model.layers[0].rbf_layer.state_dict()["vars"].cpu().detach().numpy()
                 print(f"Updated vars: {vars}")
 
                 for idx,var in enumerate(vars):
-                    log.add_value(f"var{idx}",var)
+                    logger.add_value(f"var{idx}",var)
 
                 coefs = model.layers[0].rbf_layer.state_dict()["coefs"].cpu().detach().numpy()
                 print(f"Updated coefs: {coefs}")
 
                 for idx,coef in enumerate(coefs):
-                    log.add_value(f"coef{idx}",coef)
+                    logger.add_value(f"coef{idx}",coef)
 
 
 
@@ -99,11 +102,11 @@ class SGDTrainer:
 
                 # Accumulate the running loss
                 running_train_loss += loss.item()#.detach().numpy()
-                log.add_value('train_loss_fine',loss.item())
+                logger.add_value('train_loss_fine',loss.item())
 
 
             # Print statistics after every epoch
-            log.add_value('train_loss',running_train_loss)
+            logger.add_value('train_loss',running_train_loss)
 
             eu.misc.update_status(f'Epoch {epoch + 1}/{self.config.n_epochs} - Train Loss: {running_train_loss/len(train_loader):.4f}')
         
@@ -118,10 +121,10 @@ class SGDTrainer:
                     loss = criterion(outputs, labels.to(device))
                     # Accumulate the running loss
                     running_test_loss += loss.item()
-                log.add_value('test_loss',running_test_loss)
-            log.add_value('epoch', epoch)
+                logger.add_value('test_loss',running_test_loss)
+            logger.add_value('epoch', epoch)
 
 
-        log.save()
+        logger.save()
 
         return model

@@ -29,6 +29,7 @@ class URBFMLP(torch.nn.Module):
         def_config.grad_source='input'
         def_config.use_adaptive_range = False
         def_config.use_dynamic_architecture = False
+        def_config.init_with_spektral = True
 
         return def_config
 
@@ -51,13 +52,13 @@ class URBFMLP(torch.nn.Module):
             if self.config.use_dynamic_architecture:
                 self.layers.append(AdaptiveURBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
             else:
-                self.layers.append(URBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0],ranges=self.config.ranges,use_split_merge = self.config.use_split_merge,split_merge_temperature=self.config.split_merge_temperature, use_back_tray=self.config.use_back_tray, back_tray_ratio=self.config.back_tray_ratio,grad_signal=self.config.grad_source,use_adaptive_range=self.config.use_adaptive_range))
-                self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
+                self.layers.append(URBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0],ranges=self.config.ranges,use_split_merge = self.config.use_split_merge,split_merge_temperature=self.config.split_merge_temperature, use_back_tray=self.config.use_back_tray, back_tray_ratio=self.config.back_tray_ratio,grad_signal=self.config.grad_source,use_adaptive_range=self.config.use_adaptive_range,init_with_spektral=self.config.init_with_spektral))
+                self.layers.append(torch.nn.Linear(in_features=self.config.hidden_features[0],out_features=self.config.hidden_features[0]))
                 self.layers.append(torch.nn.ReLU())
         else:
             self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
             self.layers.append(torch.nn.ReLU())
-            self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
+            self.layers.append(torch.nn.Linear(in_features=self.config.hidden_features[0],out_features=self.config.hidden_features[0]))
             self.layers.append(torch.nn.ReLU())
 
 

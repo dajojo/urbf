@@ -13,7 +13,8 @@ config = eu.AttrDict(
         ranges=<model_ranges>,
         dropout_rate=<dropout_rate>,
         use_split_merge=<use_split_merge>,
-        split_merge_temperature=<split_merge_temperature>
+        split_merge_temperature=<split_merge_temperature>,
+        init_with_spektral=<init_with_spektral>,    
         ),
 
     function = eu.AttrDict(
@@ -29,5 +30,6 @@ config = eu.AttrDict(
         learning_rate=<learning_rate>,
         urbf_learning_rate = <urbf_learning_rate>,
         n_epochs=<n_epochs>,
-        batch_size=<batch_size>),
+        batch_size=<batch_size>,
+        device="cpu"),
 )

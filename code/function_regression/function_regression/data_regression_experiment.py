@@ -35,30 +35,63 @@ def sample_random_arrays(n: int, ranges: List[Tuple[float, float]]) -> np.ndarra
 
 
 def run_data_experiments(config=None, **kwargs):
-    if config.dataset.name == "ALL":
-        print("iterate over a list of datasets and replace this field by their name")
-        ### implement checkpoints
-        ### implement logging for different datasets
+    print("iterate over a list of datasets and replace this field by their name")
+    ### implement checkpoints
+    ### implement logging for different datasets
 
-        datasets = regression_dataset_names[:3]#["1027_ESL","1028_SWD"]
+    datasets = regression_dataset_names
 
-        for dataset in datasets:
+    log_config = eu.AttrDict(
+        directory = eu.DEFAULT_DATA_DIRECTORY,
+    )
+    summary_logger = log.Logger(log_config)
 
-            working_dir = eu.DEFAULT_DATA_DIRECTORY+dataset
-            if not os.path.exists(working_dir):
-                os.makedirs(working_dir)
+    for dataset_name in datasets:
 
-            log_config = eu.AttrDict(
-                directory = working_dir,
-            )
-            logger = log.Logger(dataset, config=config, log_to_file=True, log_to_tb=False)
+        ### if the dataset is already trained, skip it... check if the folder is present
+        working_dir = eu.DEFAULT_DATA_DIRECTORY+dataset_name
+        if not os.path.exists(working_dir):
+            os.makedirs(working_dir)
+        else:
+            print(f"Dataset {dataset_name} already trained, skipping...")
+            continue
+
+        log_config = eu.AttrDict(
+            directory = working_dir,
+        )
+        logger = log.Logger(log_config)
 
 
-            config.dataset.name = dataset
+        config.dataset.name = dataset_name
 
-            model = run_data_experiment(config=config, **kwargs)
+        dataset = eu.misc.create_object_from_config(config.dataset)
+        sample_points, sample_values = dataset.generate_samples()
 
-            
+        print(sample_points.shape)
+
+        min = np.min(sample_points,axis=0)
+        max = np.max(sample_points,axis=0)
+
+
+        config.model.in_features = sample_points.shape[-1]
+        config.model.ranges = list(zip(min,max))
+
+        print(config.trainer)
+
+        model = run_data_experiment(config=config,logger=logger, **kwargs)
+
+        summary_logger.add_object("dataset",dataset_name)
+
+        test_loss = logger.numpy_data["test_loss"]
+        min_test_loss = np.min(test_loss)
+
+        summary_logger.add_value("min_test_loss",min_test_loss)
+        summary_logger.add_value("duration",logger.numpy_data["duration"][-1])
+        summary_logger.save()
+
+
+        
+
 
 def run_data_experiment(config=None,logger=None, **kwargs):
 
@@ -80,8 +113,7 @@ def run_data_experiment(config=None,logger=None, **kwargs):
             back_tray_ratio = 0.5),
         dataset = eu.AttrDict(
             cls=PMLBDataset,
-            name="feynman_III_12_43",
-            in_features=2),
+            name="feynman_III_12_43"),
         trainer = eu.AttrDict(cls=SGDTrainer,        
             learning_rate=0.1,
             urbf_learning_rate=1,
