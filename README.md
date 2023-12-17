@@ -32,9 +32,21 @@ Penn Machine Learning Benchmarks
 
 
 TODO: 
- - [ ] Functions with an unequal probability distribution -> Observe behaviour of mean values
- - [ ] Dropout? Study the effect of dropout! Maybe we can observe improved performance
- - [ ] We need to enforce movement of mean values based on activity in a certain region to improve performance
+ - [x] Functions with an unequal probability distribution -> Observe behaviour of mean values
+ - [x] Dropout? Study the effect of dropout! Maybe we can observe improved performance
+ - [x] We need to enforce movement of mean values based on activity in a certain region to improve performance
+ - [ ] Find Bug which freezes the mean and var... split and merge??
+ - [ ] Decide on Model size!
+ - [ ] Construct experiments (All Learning Methods with: 0.1, 0.01, 0.001, 0.0001)
+   - [x] 1. SVR
+   - [x] 2. Lin
+   - [x] 3. GradBoost
+   - [x] 4. MLP 
+   - [x] 5. Vanilla URBF Equal init (urbf_lr x10)
+   - [x] 6. Vanilla URBF Spektral init (urbf_lr x10)
+   - [x] 7. URBF Split and Merge
+   - [x] 8. URBF Adaptive range
+   - [ ] 9. URBF dynamic architecture
 
 
 ### Observation

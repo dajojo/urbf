@@ -67,16 +67,18 @@ def run_data_experiments(config=None, **kwargs):
         dataset = eu.misc.create_object_from_config(config.dataset)
         sample_points, sample_values = dataset.generate_samples()
 
-        print(sample_points.shape)
+        #print(sample_points.shape)
 
         min = np.min(sample_points,axis=0)
         max = np.max(sample_points,axis=0)
 
+        if config.model.in_features == None:
+            config.model.in_features = sample_points.shape[-1]
 
-        config.model.in_features = sample_points.shape[-1]
-        config.model.ranges = list(zip(min,max))
+        if None in config.model.ranges:
+            config.model.ranges = list(zip(min,max))
 
-        print(config.trainer)
+        #print(config.trainer)
 
         model = run_data_experiment(config=config,logger=logger, **kwargs)
 

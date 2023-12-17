@@ -15,6 +15,7 @@ config = eu.AttrDict(
         in_features=<in_features>,
         ranges=<model_ranges>,
         init_with_spektral=<init_with_spektral>,
+        use_adaptive_range=<use_adaptive_range>,
         ),
 
     function = eu.AttrDict(

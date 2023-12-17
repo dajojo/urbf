@@ -14,7 +14,7 @@ class SGDTrainer:
         def_config.urbf_learning_rate = None
         def_config.n_epochs = 100
         def_config.batch_size = 32
-        def_config.device = "cuda"
+        def_config.device = "auto"
         def_config.use_adaptive_range = False
         return def_config
     
@@ -51,7 +51,11 @@ class SGDTrainer:
         criterion = torch.nn.MSELoss()
 
         # Move model to GPU if available
-        device = self.config.device #torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = self.config.device
+
+        if device == "auto":
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+
         model.to(device)
 
         eu.misc.update_status(f'Epoch 0/{self.config.n_epochs} - Loss: -')
