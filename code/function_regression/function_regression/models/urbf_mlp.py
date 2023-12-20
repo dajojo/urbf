@@ -56,9 +56,14 @@ class URBFMLP(torch.nn.Module):
                 self.layers.append(torch.nn.Linear(in_features=self.config.hidden_features[0],out_features=self.config.hidden_features[0]))
                 self.layers.append(torch.nn.ReLU())
         else:
-            self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
+            N_u = self.config.hidden_features[0]
+            N_in = self.config.in_features
+
+            reduced_first_layer_size = int((2 + N_u)*N_u / (N_in + N_u))
+
+            self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=reduced_first_layer_size))
             self.layers.append(torch.nn.ReLU())
-            self.layers.append(torch.nn.Linear(in_features=self.config.hidden_features[0],out_features=self.config.hidden_features[0]))
+            self.layers.append(torch.nn.Linear(in_features=reduced_first_layer_size,out_features=self.config.hidden_features[0]))
             self.layers.append(torch.nn.ReLU())
 
 

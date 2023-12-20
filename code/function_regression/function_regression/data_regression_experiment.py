@@ -75,15 +75,17 @@ def run_data_experiments(config=None, **kwargs):
 
         print(sample_points.shape)
 
-        min = np.min(sample_points,axis=0)
-        max = np.max(sample_points,axis=0)
+        min_vals = np.min(sample_points,axis=0)
+        max_vals = np.max(sample_points,axis=0)
 
         if _config.model.in_features == None:
             _config.model.in_features = sample_points.shape[-1]
             print("Set in_features to ",_config.model.in_features)
 
         if None in _config.model.ranges:
-            _config.model.ranges = list(zip(min,max))
+            ### As a test we set the range to the global min and max 
+            _config.model.ranges = (np.min(min_vals,axis=0),np.max(max_vals,axis=0))
+            #_config.model.ranges = list(zip(min_vals,max_vals))
             print("Set ranges to ",_config.model.ranges)
 
 
@@ -97,14 +99,23 @@ def run_data_experiments(config=None, **kwargs):
         model = run_data_experiment(config=_config,logger=logger, **kwargs)
 
         summary_logger.add_object("dataset",dataset_name)
+        summary_logger.add_object("model",model)
+
+
+        params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        summary_logger.add_value("params",params)
 
         test_loss = logger.numpy_data["test_loss"]
         min_test_loss = np.min(test_loss)
 
+        print("Test loss shape")
+        print(test_loss.shape)
 
         val_loss = logger.numpy_data["val_loss"]
         min_val_loss_idx = np.argmin(val_loss)
 
+        print("Val loss shape")
+        print(val_loss.shape)
 
         summary_logger.add_value("min_val_test_loss",test_loss[min_val_loss_idx])
         summary_logger.add_value("min_test_loss",min_test_loss)
@@ -140,7 +151,8 @@ def run_data_experiment(config=None,logger=None, **kwargs):
             learning_rate=0.1,
             urbf_learning_rate=1,
             n_epochs=1000,
-            batch_size=64),
+            batch_size=64,
+            is_classification=False,),
         seed = 123,
         test_split_size = 0.2,
         val_split_size = 0.2,

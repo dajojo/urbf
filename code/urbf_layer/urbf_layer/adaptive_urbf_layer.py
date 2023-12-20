@@ -254,7 +254,7 @@ class AdaptiveRBFLayer(torch.nn.Module):
         
     def __init__(self,n_features, means = None, vars = None) -> None:
         super().__init__()
-        #print("Init AdaptiveRBFLayer")
+
         self.n_features = n_features
 
         if means == None:

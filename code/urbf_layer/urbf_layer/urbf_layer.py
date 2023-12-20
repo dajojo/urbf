@@ -370,13 +370,9 @@ class RBFLayer(torch.nn.Module):
         # calculate gauss activation per map-neuron
 
         ### B x C
-
         if self.use_back_tray:
             print(f"deactivating... {x.shape}")
             x = x * self.active[None,:]
-
-
-        #print(f"Forward URBF Layer: {x.shape} {self.means.shape} {self.stds.shape}")
 
         return torch.exp(-0.5 * ((x - self.means) / self.stds) ** 2) #### why is coef even relevant??? this should have no influence!
     

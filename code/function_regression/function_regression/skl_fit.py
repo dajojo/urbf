@@ -36,17 +36,13 @@ class SKLFit:
         model.fit(x,y)
 
         print(f"X: {x.shape}")
-        y_pred = model(x)
+
         
-        print(f"Y pred: {y_pred.shape}")
+        y_pred = model(x)
         loss = criterion(y_pred,y)
         for epoch in range(self.config.n_epochs):
             logger.add_value('train_loss',loss)
             logger.add_value('epoch', epoch)
-
-
-        #del y_pred
-        #gc.collect()
 
         y_pred = model(x_val)
         loss = criterion(y_pred,y_val)

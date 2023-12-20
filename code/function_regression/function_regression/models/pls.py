@@ -27,6 +27,7 @@ class PLS:
         self.regr = PLSRegression(n_components=self.config.in_features)
 
     def fit(self,x,y):
+        print(f"PLS: x -> {x.shape} y -> {y.shape}")
         self.regr = self.regr.fit(x.detach().numpy(), y.detach().numpy())
 
 

@@ -16,6 +16,7 @@ class AdamTrainer:
         def_config.batch_size = 32
         def_config.device = "auto"
         def_config.use_adaptive_range = False
+        def_config.is_classification = False
         return def_config
     
 
@@ -52,8 +53,10 @@ class AdamTrainer:
         optimizer = torch.optim.Adam([{'params':model.params.mlp.parameters()},
                                      {'params':model.params.urbf.parameters(), 'lr': self.config.urbf_learning_rate,'weight_decay': 0}], lr=self.config.learning_rate)
         
-        
-        criterion = torch.nn.MSELoss()
+        if self.config.is_classification:
+            criterion = torch.nn.CrossEntropyLoss()
+        else:
+            criterion = torch.nn.MSELoss()
 
         device = self.config.device
 
