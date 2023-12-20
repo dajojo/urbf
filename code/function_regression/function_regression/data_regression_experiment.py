@@ -39,7 +39,7 @@ def run_data_experiments(config=None, **kwargs):
     ### implement checkpoints
     ### implement logging for different datasets
 
-    datasets = regression_dataset_names
+    datasets = regression_dataset_names[:8]
 
     log_config = eu.AttrDict(
         directory = eu.DEFAULT_DATA_DIRECTORY,
@@ -47,6 +47,8 @@ def run_data_experiments(config=None, **kwargs):
     summary_logger = log.Logger(log_config)
 
     for dataset_name in datasets:
+
+        _config = config.copy()
 
         ### if the dataset is already trained, skip it... check if the folder is present
         working_dir = eu.DEFAULT_DATA_DIRECTORY+dataset_name
@@ -62,31 +64,49 @@ def run_data_experiments(config=None, **kwargs):
         logger = log.Logger(log_config)
 
 
-        config.dataset.name = dataset_name
+        _config.dataset.name = dataset_name
 
-        dataset = eu.misc.create_object_from_config(config.dataset)
+        dataset = eu.misc.create_object_from_config(_config.dataset)
         sample_points, sample_values = dataset.generate_samples()
 
-        #print(sample_points.shape)
+        if sample_points.shape[-1] > 4:
+            print(f"Skipping {dataset_name} because it has more than 4 dimensions")
+            continue
+
+        print(sample_points.shape)
 
         min = np.min(sample_points,axis=0)
         max = np.max(sample_points,axis=0)
 
-        if config.model.in_features == None:
-            config.model.in_features = sample_points.shape[-1]
+        if _config.model.in_features == None:
+            _config.model.in_features = sample_points.shape[-1]
+            print("Set in_features to ",_config.model.in_features)
 
-        if None in config.model.ranges:
-            config.model.ranges = list(zip(min,max))
+        if None in _config.model.ranges:
+            _config.model.ranges = list(zip(min,max))
+            print("Set ranges to ",_config.model.ranges)
+
+
+        if len(_config.model.hidden_features) > 0:
+            ### We need to set the first hidden layer to the number of features
+            _config.model.hidden_features[0] = _config.model.in_features * _config.model.hidden_features[0]
+
 
         #print(config.trainer)
 
-        model = run_data_experiment(config=config,logger=logger, **kwargs)
+        model = run_data_experiment(config=_config,logger=logger, **kwargs)
 
         summary_logger.add_object("dataset",dataset_name)
 
         test_loss = logger.numpy_data["test_loss"]
         min_test_loss = np.min(test_loss)
 
+
+        val_loss = logger.numpy_data["val_loss"]
+        min_val_loss_idx = np.argmin(val_loss)
+
+
+        summary_logger.add_value("min_val_test_loss",test_loss[min_val_loss_idx])
         summary_logger.add_value("min_test_loss",min_test_loss)
         summary_logger.add_value("duration",logger.numpy_data["duration"][-1])
         summary_logger.save()
@@ -154,9 +174,10 @@ def run_data_experiment(config=None,logger=None, **kwargs):
         train_points, train_values, test_size= config.val_split_size / (1 - config.test_split_size) , random_state=config.seed)
 
     train_dataset = FunctionSampleDataset(train_points, train_values)
+    val_dataset = FunctionSampleDataset(val_points, val_values)
     test_dataset = FunctionSampleDataset(test_points, test_values)
 
-    model = trainer.train(model,train_dataset,test_dataset,logger=logger)
+    model = trainer.train(model,train_dataset,val_dataset=val_dataset,test_dataset=test_dataset,logger=logger)  
     
     end_time = time.time()
 

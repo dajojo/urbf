@@ -24,7 +24,7 @@ class SGDTrainer:
         self.config = eu.combine_dicts(kwargs, config, self.default_config())
 
 
-    def train(self,model,train_dataset:Dataset,test_dataset:Union[None,Dataset] = None,logger=None):
+    def train(self,model,train_dataset:Dataset,val_dataset:Union[None,Dataset] = None,test_dataset:Union[None,Dataset] = None,logger=None):
         if logger == None:
             logger = log
         
@@ -34,6 +34,12 @@ class SGDTrainer:
             test_loader = DataLoader(test_dataset, batch_size=self.config.batch_size, shuffle=True)
         else:
             test_loader = None
+
+        if val_dataset != None:
+            val_loader = DataLoader(val_dataset, batch_size=self.config.batch_size, shuffle=True)
+        else:
+            val_loader = None
+
 
         if self.config.urbf_learning_rate == None:
             self.config.urbf_learning_rate = self.config.learning_rate
@@ -72,11 +78,11 @@ class SGDTrainer:
                 for idx,mean in enumerate(means):
                     logger.add_value(f"mean{idx}",mean)
 
-                vars = model.layers[0].rbf_layer.state_dict()["vars"].cpu().detach().numpy()
-                print(f"Updated vars: {vars}")
+                stds = model.layers[0].rbf_layer.state_dict()["stds"].cpu().detach().numpy()
+                print(f"Updated stds: {stds}")
 
-                for idx,var in enumerate(vars):
-                    logger.add_value(f"var{idx}",var)
+                for idx,std in enumerate(stds):
+                    logger.add_value(f"std{idx}",std)
 
                 coefs = model.layers[0].rbf_layer.state_dict()["coefs"].cpu().detach().numpy()
                 print(f"Updated coefs: {coefs}")
@@ -113,7 +119,19 @@ class SGDTrainer:
             logger.add_value('train_loss',running_train_loss)
 
             eu.misc.update_status(f'Epoch {epoch + 1}/{self.config.n_epochs} - Train Loss: {running_train_loss/len(train_loader):.4f}')
-        
+    
+
+            if val_loader != None:
+                model.eval()
+                running_val_loss = 0.0
+                for i, (inputs, labels) in enumerate(val_loader):
+                    # Forward pass: compute the model output
+                    outputs = model(inputs.to(device))#.squeeze()
+                    # Compute the loss
+                    loss = criterion(outputs, labels.to(device))
+                    # Accumulate the running loss
+                    running_val_loss += loss.item()
+                logger.add_value('val_loss',running_val_loss)
 
             if test_loader != None:
                 model.eval()

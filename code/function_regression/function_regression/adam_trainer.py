@@ -24,13 +24,18 @@ class AdamTrainer:
         self.config = eu.combine_dicts(kwargs, config, self.default_config())
 
 
-    def train(self,model,train_dataset:Dataset,test_dataset:Union[None,Dataset] = None,logger=None):
+    def train(self,model,train_dataset:Dataset,val_dataset:Union[None,Dataset] = None,test_dataset:Union[None,Dataset] = None,logger=None):
 
         if logger == None:
             logger = log
 
 
         train_loader = DataLoader(train_dataset, batch_size=self.config.batch_size, shuffle=True)
+
+        if val_dataset != None:
+            val_loader = DataLoader(val_dataset, batch_size=self.config.batch_size, shuffle=True)
+        else:
+            val_loader = None
 
         if test_dataset != None:
             test_loader = DataLoader(test_dataset, batch_size=self.config.batch_size, shuffle=True)
@@ -47,8 +52,6 @@ class AdamTrainer:
         optimizer = torch.optim.Adam([{'params':model.params.mlp.parameters()},
                                      {'params':model.params.urbf.parameters(), 'lr': self.config.urbf_learning_rate,'weight_decay': 0}], lr=self.config.learning_rate)
         
-        # Define an optimizer and a loss function
-        #optimizer = torch.optim.SGD([model.parameters()], lr=self.config.learning_rate)
         
         criterion = torch.nn.MSELoss()
 
@@ -56,6 +59,7 @@ class AdamTrainer:
 
         if device == "auto":
             device = "cuda" if torch.cuda.is_available() else "cpu"
+            device = "mps" if torch.backends.mps.is_built() else device
 
 
 
@@ -75,18 +79,18 @@ class AdamTrainer:
                 for idx,mean in enumerate(means):
                     logger.add_value(f"mean{idx}",mean)
 
-                vars = model.layers[0].rbf_layer.state_dict()["vars"].cpu().detach().numpy()
-                #print(f"Updated vars: {vars.shape}")
+                stds = model.layers[0].rbf_layer.state_dict()["stds"].cpu().detach().numpy()
+                #print(f"Updated stds: {stds.shape}")
 
-                for idx,var in enumerate(vars):
-                    logger.add_value(f"var{idx}",var)
+                for idx,std in enumerate(stds):
+                    logger.add_value(f"std{idx}",std)
                 
-                if hasattr(model.layers[0].rbf_layer,'coefs'):
-                    coefs = model.layers[0].rbf_layer.coefs.cpu().detach().numpy()
-                    #print(f"Updated coefs: {coefs.shape}")
+                # if hasattr(model.layers[0].rbf_layer,'coefs'):
+                #     coefs = model.layers[0].rbf_layer.coefs.cpu().detach().numpy()
+                #     #print(f"Updated coefs: {coefs.shape}")
 
-                    for idx,coef in enumerate(coefs):
-                        logger.add_value(f"coef{idx}",coef)
+                #     for idx,coef in enumerate(coefs):
+                #         logger.add_value(f"coef{idx}",coef)
 
                 if hasattr(model.layers[0],'expansion_mapping'):
                     expansion_mapping = model.layers[0].expansion_mapping.cpu().detach().numpy()
@@ -95,27 +99,27 @@ class AdamTrainer:
                     for idx,expansion_map in enumerate(expansion_mapping):
                         logger.add_value(f"expansion_map{idx}",expansion_map.argmax()+expansion_map.sum())
 
-                if hasattr(model.layers[0],'significance'):
-                    significances = model.layers[0].significance.cpu().detach().numpy()
-                    #print(f"Updated significance: {significances.shape}")
+                # if hasattr(model.layers[0],'significance'):
+                #     significances = model.layers[0].significance.cpu().detach().numpy()
+                #     #print(f"Updated significance: {significances.shape}")
 
-                    for idx,significance in enumerate(significances):
-                        logger.add_value(f"significance{idx}",significance)
+                #     for idx,significance in enumerate(significances):
+                #         logger.add_value(f"significance{idx}",significance)
 
-                if hasattr(model.layers[0],'linear_layer_grad_output') and model.layers[0].linear_layer_grad_output != None:
-                    linear_layer_grad_outputs = model.layers[0].linear_layer_grad_output[0]#.mean(dim=0)
-                    #print(f"Updated linear_layer_grad_output: {linear_layer_grad_outputs.shape}")
+                # if hasattr(model.layers[0],'linear_layer_grad_output') and model.layers[0].linear_layer_grad_output != None:
+                #     linear_layer_grad_outputs = model.layers[0].linear_layer_grad_output[0]#.mean(dim=0)
+                #     #print(f"Updated linear_layer_grad_output: {linear_layer_grad_outputs.shape}")
 
-                    for idx,linear_layer_grad_output in enumerate(linear_layer_grad_outputs):
-                        logger.add_value(f"linear_layer_grad_output{idx}",linear_layer_grad_output.cpu().detach().numpy())
+                #     for idx,linear_layer_grad_output in enumerate(linear_layer_grad_outputs):
+                #         logger.add_value(f"linear_layer_grad_output{idx}",linear_layer_grad_output.cpu().detach().numpy())
 
 
-                if hasattr(model.layers[0],'input') and model.layers[0].input != None:
-                    inputs = model.layers[0].input[0]#.mean(dim=0)
-                    #print(f"Updated input: {inputs.shape}")
+                # if hasattr(model.layers[0],'input') and model.layers[0].input != None:
+                #     inputs = model.layers[0].input[0]#.mean(dim=0)
+                #     #print(f"Updated input: {inputs.shape}")
 
-                    for idx,input in enumerate(inputs):
-                        logger.add_value(f"input{idx}",input.cpu().detach().numpy())
+                #     for idx,input in enumerate(inputs):
+                #         logger.add_value(f"input{idx}",input.cpu().detach().numpy())
 
 
 
@@ -151,12 +155,25 @@ class AdamTrainer:
             logger.add_value('train_loss',running_train_loss)
 
             # Keep track of the learning rate... 
-            logger.add_value('lr',optimizer.param_groups[0]['lr'])
-            logger.add_value('urbf_lr',optimizer.param_groups[1]['lr'])
+            #logger.add_value('lr',optimizer.param_groups[0]['lr'])
+            #logger.add_value('urbf_lr',optimizer.param_groups[1]['lr'])
             
-
+            print(f'Epoch {epoch + 1}/{self.config.n_epochs} - Train Loss: {running_train_loss/len(train_loader):.4f}')
             eu.misc.update_status(f'Epoch {epoch + 1}/{self.config.n_epochs} - Train Loss: {running_train_loss/len(train_loader):.4f}')
         
+            if val_loader != None:
+                model.eval()
+                running_val_loss = 0.0
+                for i, (inputs, labels) in enumerate(val_loader):
+                    # Forward pass: compute the model output
+                    outputs = model(inputs.to(device))#.squeeze()
+                    # Compute the loss
+                    loss = criterion(outputs, labels.to(device))
+                    # Accumulate the running loss
+                    running_val_loss += loss.item()
+                logger.add_value('val_loss',running_val_loss)
+
+
             if test_loader != None:
                 model.eval()
                 running_test_loss = 0.0

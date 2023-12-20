@@ -57,6 +57,7 @@ def run_experiment(config=None, **kwargs):
             in_features=2,
             difficulty=2,
             #coef=(-5,5),
+            independent_dim_ranges=[],
             ranges=(-5,5),
             peak_distr_ranges = (-5,5)),
         trainer = eu.AttrDict(
@@ -75,6 +76,10 @@ def run_experiment(config=None, **kwargs):
     config = eu.combine_dicts(kwargs, config, default_config)
 
     ### Sanitize
+
+    if isinstance(config.model.ranges, tuple):
+        config.model.ranges = [config.model.ranges] * config.model.in_features        
+
     if isinstance(config.function.ranges,tuple):
         config.function.ranges = [config.function.ranges] * config.function.in_features        
 
@@ -88,13 +93,27 @@ def run_experiment(config=None, **kwargs):
         config.function.means = sample_random_arrays(config.function.difficulty, config.function.peak_distr_ranges)
         print(f"Randomly generated mean: {config.function.means} {config.function.peak_distr_ranges}")
 
-    if "vars" not in config.function:
-        config.function.vars = np.squeeze(sample_random_arrays(config.function.difficulty,[(0.5,1)]), axis=1)
-        print(f"Randomly generated vars: {config.function.vars}")
+    if "stds" not in config.function:
+        config.function.stds = np.squeeze(sample_random_arrays(config.function.difficulty,[(0.5,1)]), axis=1)
+        print(f"Randomly generated stds: {config.function.stds}")
 
     if "coef" not in config.function:
         config.function.coef = sample_random_arrays(config.function.difficulty, config.function.peak_distr_ranges)
         print(f"Randomly generated coef: {config.function.coef} {config.function.peak_distr_ranges}")
+
+
+    ####### add independent dimensions
+    for independent_dim_range in config.function.independent_dim_ranges:
+        min_val, max_val = independent_dim_range
+
+        if len(config.model.hidden_features) > 0:
+            ## Otherwise it is an sklearn model
+            features_per_input = config.model.hidden_features[0] // config.model.in_features
+
+            ## also increase the input dimensionality and the ranges and the hidden features
+            config.model.in_features += 1
+            config.model.ranges.append((min_val,max_val))
+            config.model.hidden_features[0] = config.model.hidden_features[0] + features_per_input
 
     ##
     function = eu.misc.create_object_from_config(config.function)
@@ -103,7 +122,14 @@ def run_experiment(config=None, **kwargs):
     
     sample_points, sample_values = function.generate_samples(config.function.ranges)
     print(f"Sampled {sample_values.shape}")
+
     
+    for independent_dim_range in config.function.independent_dim_ranges:
+        min_val, max_val = independent_dim_range
+        independent_dim = np.random.uniform(min_val, max_val, sample_values.shape[0])
+        sample_points = np.concatenate((sample_points, independent_dim.reshape(-1,1)), axis=1)
+
+
     # Split the dataset into training (60%), validation (20%), and test (20%)
     train_points, test_points, train_values, test_values = train_test_split(
         sample_points, sample_values, test_size=0.2, random_state=config.seed)
@@ -113,10 +139,10 @@ def run_experiment(config=None, **kwargs):
         train_points, train_values, test_size= config.val_split_size / (1 - config.test_split_size) , random_state=config.seed)
 
     train_dataset = FunctionSampleDataset(train_points, train_values)
+    val_dataset = FunctionSampleDataset(val_points, val_values)
     test_dataset = FunctionSampleDataset(test_points, test_values)
 
-    model = trainer.train(model,train_dataset,test_dataset)    
-    #model.plot()
+    model = trainer.train(model,train_dataset,val_dataset=val_dataset,test_dataset=test_dataset)    
     
     end_time = time.time()
 

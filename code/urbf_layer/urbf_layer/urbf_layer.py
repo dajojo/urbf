@@ -100,8 +100,8 @@ class URBFLayer(torch.nn.Module):
                 self.split_merge_temperature[in_feature] = self.split_merge_temperature[in_feature]/2 #### should we treat it as a 'Temperature' which is cooling down to reduce rearrangements later during training?
 
                 max_mean = self.rbf_layer.means[max_idx + in_feature*self.out_features_per_in_feature]
-                self.rbf_layer.means[min_idx + in_feature*self.out_features_per_in_feature].data = max_mean - self.rbf_layer.vars[max_idx + in_feature*self.out_features_per_in_feature]/2 #self.means[min_idx + in_feature*self.out_features_per_in_feature] + 
-                self.rbf_layer.means[max_idx + in_feature*self.out_features_per_in_feature].data = max_mean + self.rbf_layer.vars[max_idx + in_feature*self.out_features_per_in_feature]/2 
+                self.rbf_layer.means[min_idx + in_feature*self.out_features_per_in_feature].data = max_mean - self.rbf_layer.stds[max_idx + in_feature*self.out_features_per_in_feature]/2 #self.means[min_idx + in_feature*self.out_features_per_in_feature] + 
+                self.rbf_layer.means[max_idx + in_feature*self.out_features_per_in_feature].data = max_mean + self.rbf_layer.stds[max_idx + in_feature*self.out_features_per_in_feature]/2 
 
                 self.acc_grad[in_feature*self.out_features_per_in_feature:(in_feature+1)*self.out_features_per_in_feature] = torch.zeros(self.out_features_per_in_feature)
 
@@ -129,10 +129,10 @@ class URBFLayer(torch.nn.Module):
                 self.split_merge_temperature[in_feature] = self.split_merge_temperature[in_feature]/2 #### should we treat it as a 'Temperature' which is cooling down to reduce rearrangements later during training?
 
                 max_mean = self.rbf_layer.means[max_idx + in_feature*self.out_features_per_in_feature]
-                max_var = self.rbf_layer.vars[max_idx + in_feature*self.out_features_per_in_feature]
+                max_var = self.rbf_layer.stds[max_idx + in_feature*self.out_features_per_in_feature]
 
 
-                #self.rbf_layer.means[min_idx + in_feature*self.out_features_per_in_feature] = max_mean - self.rbf_layer.vars[max_idx + in_feature*self.out_features_per_in_feature]/2 #self.means[min_idx + in_feature*self.out_features_per_in_feature] + 
+                #self.rbf_layer.means[min_idx + in_feature*self.out_features_per_in_feature] = max_mean - self.rbf_layer.stds[max_idx + in_feature*self.out_features_per_in_feature]/2 #self.means[min_idx + in_feature*self.out_features_per_in_feature] + 
 
                 
                 new_gauss_idx = self.rbf_layer.active_out_features_per_in_feature[in_feature] + in_feature*self.out_features_per_in_feature
@@ -229,9 +229,10 @@ class RBFLayer(torch.nn.Module):
         self.use_back_tray = use_back_tray
         self.back_tray_ratio = back_tray_ratio
         self.use_adaptive_range = use_adaptive_range
+        self.init_with_spektral = init_with_spektral
 
         self.means = torch.nn.Parameter(torch.zeros(self.n_features))
-        self.vars = torch.nn.Parameter(torch.ones(self.n_features))
+        self.stds = torch.nn.Parameter(torch.ones(self.n_features))
         self.coefs = torch.nn.Parameter(torch.ones(self.n_features))
 
         self.active = torch.nn.Parameter(torch.zeros(self.n_features).bool(),requires_grad=False)
@@ -245,9 +246,9 @@ class RBFLayer(torch.nn.Module):
 
         if not self.use_adaptive_range:
 
-            if init_with_spektral:
+            if self.init_with_spektral:
                 means = torch.zeros_like(self.means)
-                vars =  torch.zeros_like(self.vars)
+                vars =  torch.zeros_like(self.stds)
 
                 for dim, dim_range in enumerate(self.init_ranges):
                     dim_min,dim_max = dim_range
@@ -275,14 +276,14 @@ class RBFLayer(torch.nn.Module):
                         print(f"Entering level {level} with left features {left_features}")
                 
                 self.means = torch.nn.Parameter(means)
-                self.vars = torch.nn.Parameter(vars)
+                self.stds = torch.nn.Parameter(vars)
             else:
 
                 ###### Init with equally spaced gaussians
                 print("Init with equally spaced gaussians")
 
                 means = torch.zeros_like(self.means)
-                vars =  torch.zeros_like(self.vars) 
+                vars =  torch.zeros_like(self.stds) 
 
         
                 for dim, dim_range in enumerate(self.init_ranges):
@@ -300,7 +301,7 @@ class RBFLayer(torch.nn.Module):
                         self.active[(dim)*self.out_features_per_in_feature + neuron] = True
 
                 self.means = torch.nn.Parameter(means)
-                self.vars = torch.nn.Parameter(vars)
+                self.stds = torch.nn.Parameter(vars)
         else:
             print("Using adaptive range!!")
 
@@ -324,31 +325,46 @@ class RBFLayer(torch.nn.Module):
             self.adaptive_range = self.adaptive_range + delta_range
             print(f"New adaptive range: {self.adaptive_range}")
 
-            for dim, dim_range in enumerate(self.adaptive_range):
-                dim_min,dim_max = dim_range
-                
-                abs_range = dim_max - dim_min
+            if self.init_with_spektral:
+                for dim, dim_range in enumerate(self.adaptive_range):
+                    dim_min,dim_max = dim_range
+                    abs_range = dim_max - dim_min
 
-                level = 1
-                left_features = self.out_features_per_in_feature
+                    level = 1
+                    left_features = self.out_features_per_in_feature
 
-                while left_features > 0:
-                    for neuron in range(level):
+                    while left_features > 0:
+                        for neuron in range(level):
 
-                        if left_features == 0:
-                            break
+                            if left_features == 0:
+                                break
 
-                        self.means[(dim + 1)*self.out_features_per_in_feature - left_features] = dim_min + (abs_range/(level*2))*(neuron*2 + 1)
-                        self.vars[(dim + 1)*self.out_features_per_in_feature - left_features] = abs_range/(level * 2)
+                            self.means[(dim + 1)*self.out_features_per_in_feature - left_features] = dim_min + (abs_range/(level*2))*(neuron*2 + 1)
+                            self.stds[(dim + 1)*self.out_features_per_in_feature - left_features] = abs_range/(level * 2)
 
-                        self.active[(dim + 1)*self.out_features_per_in_feature - left_features] = True
+                            self.active[(dim + 1)*self.out_features_per_in_feature - left_features] = True
 
-                        left_features = left_features - 1
+                            left_features = left_features - 1
 
-                    level = level + 1
+                        level = level + 1
 
-                    print(f"Entering level {level} with left features {left_features}")
-    
+                        print(f"Entering level {level} with left features {left_features}")
+            else:
+                for dim, dim_range in enumerate(self.adaptive_range):
+                    dim_min,dim_max = dim_range
+                    abs_range = dim_max - dim_min
+
+                    left_features = self.out_features_per_in_feature
+
+                    step = abs_range / (left_features)
+
+                    for neuron in range(left_features):
+
+                        self.means[(dim)*self.out_features_per_in_feature + neuron] = dim_min + step*(neuron) + step/2
+                        self.stds[(dim)*self.out_features_per_in_feature + neuron] = step*2
+
+                        self.active[(dim)*self.out_features_per_in_feature + neuron] = True
+
 
     def forward(self,x):
         # calculate gauss activation per map-neuron
@@ -359,5 +375,8 @@ class RBFLayer(torch.nn.Module):
             print(f"deactivating... {x.shape}")
             x = x * self.active[None,:]
 
-        return torch.exp(-0.5 * ((x - self.means) / self.vars) ** 2) #* self.coefs #### why is coef even relevant??? this should have no influence!
+
+        #print(f"Forward URBF Layer: {x.shape} {self.means.shape} {self.stds.shape}")
+
+        return torch.exp(-0.5 * ((x - self.means) / self.stds) ** 2) #### why is coef even relevant??? this should have no influence!
     

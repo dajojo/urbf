@@ -16,6 +16,7 @@ config = eu.AttrDict(
         ranges=<model_ranges>,
         init_with_spektral=<init_with_spektral>,
         use_adaptive_range=<use_adaptive_range>,
+        use_dynamic_architecture=<use_dynamic_architecture>,
         ),
 
     function = eu.AttrDict(
@@ -31,5 +32,6 @@ config = eu.AttrDict(
         learning_rate=<learning_rate>,
         urbf_learning_rate = <urbf_learning_rate>,
         n_epochs=<n_epochs>,
-        batch_size=<batch_size>),
+        batch_size=<batch_size>,
+        device="auto"),
 )

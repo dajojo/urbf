@@ -8,7 +8,9 @@ class AdaptiveURBFLayer(torch.nn.Module):
 
     def __init__(self,
                 in_features:int,
-                out_features:int):
+                out_features:int,
+                #device:Literal['cpu','cuda'] = 'cuda'
+                ):
         super().__init__()
 
         print("init AdaptiveURBFLayer")
@@ -58,7 +60,7 @@ class AdaptiveURBFLayer(torch.nn.Module):
 
     # def init_spektrum_pattern(self,adaptive_range):
     #     means = torch.zeros_like(self.rbf_layer.means)
-    #     vars =  torch.zeros_like(self.rbf_layer.vars)
+    #     vars =  torch.zeros_like(self.rbf_layer.stds)
 
     #     for dim, dim_range in enumerate(adaptive_range):
 
@@ -82,7 +84,7 @@ class AdaptiveURBFLayer(torch.nn.Module):
     #         level = level + 1
 
     #     self.rbf_layer.means = torch.nn.Parameter(means)
-    #     self.rbf_layer.vars = torch.nn.Parameter(vars)
+    #     self.rbf_layer.stds = torch.nn.Parameter(vars)
 
 
     def prune(self):
@@ -93,7 +95,7 @@ class AdaptiveURBFLayer(torch.nn.Module):
         
         self.expansion_mapping[filtered_indices,:] = 0
         self.rbf_layer.means[filtered_indices].data.fill_(0)
-        self.rbf_layer.vars[filtered_indices].data.fill_(1)
+        self.rbf_layer.stds[filtered_indices].data.fill_(1)
 
         self.significance[filtered_indices] = 0.5
         ### Significance is set 0.5 to avoid pruning the same neurons again and again
@@ -124,8 +126,8 @@ class AdaptiveURBFLayer(torch.nn.Module):
             total_features = self.out_features * 2
             left_features = total_features
 
-            means = torch.zeros(total_features)
-            vars = torch.ones(total_features)
+            means = torch.zeros(total_features,device=self.linear_layer.weight.device)
+            vars = torch.ones(total_features,device=self.linear_layer.weight.device)
 
             while left_features > 0:
                 for neuron in range(level):
@@ -141,7 +143,7 @@ class AdaptiveURBFLayer(torch.nn.Module):
                 level = level + 1
 
             input_dim_rbf_layer = AdaptiveRBFLayer(total_features,means=means,vars=vars)
-            act = input_dim_rbf_layer(torch.ones((self.input.shape[0],total_features))*self.input[:,in_dim][:,None])
+            act = input_dim_rbf_layer(torch.ones((self.input.shape[0],total_features),device=self.linear_layer.weight.device)*self.input[:,in_dim][:,None])
             input_dim_rbf_layers.append(input_dim_rbf_layer)
             input_activations.append(act)
 
@@ -150,7 +152,7 @@ class AdaptiveURBFLayer(torch.nn.Module):
 
         linear_layer_grad_output_corr = (self.linear_layer_grad_output[:,None,None,:] * input_activations[:,:,:,None]).mean(dim=0) ## B x in x prototypes x next_neuron -> C x F
 
-        slot_indices = (self.expansion_mapping.sum(dim=-1) == 0).nonzero()#.squeeze() ## C
+        slot_indices = (self.expansion_mapping.to(device=self.linear_layer.weight.device).sum(dim=-1) == 0).nonzero()#.squeeze() ## C
 
         if slot_indices.shape[0] >= 0:
             for slot_idx in slot_indices:
@@ -168,10 +170,10 @@ class AdaptiveURBFLayer(torch.nn.Module):
                 max_in_idx = max_in_idx[max_prototype_idx, max_neuron_idx]
 
                 mean = input_dim_rbf_layers[max_in_idx].means[max_prototype_idx]
-                var = input_dim_rbf_layers[max_in_idx].vars[max_prototype_idx]
+                var = input_dim_rbf_layers[max_in_idx].stds[max_prototype_idx]
 
                 self.rbf_layer.means[slot_idx].data = mean
-                self.rbf_layer.vars[slot_idx].data = var
+                self.rbf_layer.stds[slot_idx].data = var
 
                 self.expansion_mapping[slot_idx,max_in_idx] = 1
 
@@ -224,19 +226,19 @@ class AdaptiveURBFLayer(torch.nn.Module):
                     print(f"new adaptive range: {self.adaptive_range} from current range: {curr_range}",)
 
             self.prune()
-            if (self.expansion_mapping.sum(dim=-1) == 0).any() and self.linear_layer_grad_output != None and self.input != None:
+            if (self.expansion_mapping.to(device=self.linear_layer.weight.device).sum(dim=-1) == 0).any() and self.linear_layer_grad_output != None and self.input != None:
                self.grow()
 
             self.input = x
 
         ### Expand the dimensionality
-        x = (self.expansion_mapping @ x.transpose(1,0)).transpose(1,0)
+        x = (self.expansion_mapping.to(device=self.linear_layer.weight.device) @ x.transpose(1,0)).transpose(1,0)
          
         ## calculate gauss activation per map-neuron
         y = self.rbf_layer(x)
 
         ## store significance
-        self.significance = 1/2*(self.significance + y.mean(dim=0))
+        self.significance = 1/2*(self.significance + y.mean(dim=0).to("cpu"))
 
         y = self.linear_layer(y)
 
@@ -261,13 +263,13 @@ class AdaptiveRBFLayer(torch.nn.Module):
             vars = torch.ones(self.n_features)
 
         self.means = torch.nn.Parameter(means)
-        self.vars = torch.nn.Parameter(vars)
+        self.stds = torch.nn.Parameter(vars)
 
 
     def init_spektrum_pattern(self,adaptive_range):
 
-        means = torch.zeros_like(self.means)
-        vars =  torch.zeros_like(self.vars)
+        means = torch.zeros_like(self.means,device=self.means.device)
+        vars =  torch.zeros_like(self.stds,device=self.stds.device )
 
         self.out_features_per_in_feature = self.n_features//len(adaptive_range)
 
@@ -293,15 +295,15 @@ class AdaptiveRBFLayer(torch.nn.Module):
             level = level + 1
 
         self.means.data = means
-        self.vars.data = vars
+        self.stds.data = vars
 
 
     def forward(self,x):
         ### B x C
 
-        y = torch.exp(-0.5 * ((x - self.means) / self.vars) ** 2) #### RENAME var to std!!!
+        y = torch.exp(-0.5 * ((x - self.means) / self.stds) ** 2) #### RENAME var to std!!!
         #### Reintroduce the scaling factor???
-        y = y * 1 / (self.vars.abs() * math.sqrt(2 * math.pi))
+        y = y * 1 / (self.stds.abs() * math.sqrt(2 * math.pi))
 
         return y
     

@@ -22,11 +22,16 @@ class SKLFit:
         self.config = eu.combine_dicts(kwargs, config, self.default_config())
 
 
-    def train(self,model,train_dataset:Dataset,test_dataset:Union[None,Dataset] = None):
+    def train(self,model,train_dataset:Dataset,val_dataset:Union[None,Dataset] = None,test_dataset:Union[None,Dataset] = None,logger=None):
+
+        if logger == None:
+            logger = log
+
         criterion = torch.nn.MSELoss()
 
         x,y = train_dataset[:]
         x_test,y_test = test_dataset[:]
+        x_val,y_val = val_dataset[:]
 
         model.fit(x,y)
 
@@ -36,18 +41,23 @@ class SKLFit:
         print(f"Y pred: {y_pred.shape}")
         loss = criterion(y_pred,y)
         for epoch in range(self.config.n_epochs):
-            log.add_value('train_loss',loss)
-            log.add_value('epoch', epoch)
+            logger.add_value('train_loss',loss)
+            logger.add_value('epoch', epoch)
 
 
         #del y_pred
         #gc.collect()
 
+        y_pred = model(x_val)
+        loss = criterion(y_pred,y_val)
+        for epoch in range(self.config.n_epochs):
+            logger.add_value('val_loss',loss)
+
         y_pred = model(x_test)
         loss = criterion(y_pred,y_test)
         for epoch in range(self.config.n_epochs):
-            log.add_value('test_loss',loss)
+            logger.add_value('test_loss',loss)
 
-        log.save()
+        logger.save()
 
         return model

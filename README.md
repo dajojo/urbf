@@ -85,3 +85,4 @@ Split & Merge:
 
 `tensor.grad`:
  - By using the grad attribute of a param tensor we can investigate the gradient of a specific param such as mean or var
+
