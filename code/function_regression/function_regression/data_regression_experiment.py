@@ -10,6 +10,7 @@ import exputils.data.logging as log
 import time
 from pmlb import classification_dataset_names, regression_dataset_names
 import os
+import torch
 
 def sample_random_arrays(n: int, ranges: List[Tuple[float, float]]) -> np.ndarray:
     """
@@ -69,8 +70,8 @@ def run_data_experiments(config=None, **kwargs):
         dataset = eu.misc.create_object_from_config(_config.dataset)
         sample_points, sample_values = dataset.generate_samples()
 
-        if sample_points.shape[-1] > 4:
-            print(f"Skipping {dataset_name} because it has more than 4 dimensions")
+        if sample_points.shape[-1] > 10:
+            print(f"Skipping {dataset_name} because it has more than 10 dimensions")
             continue
 
         print(sample_points.shape)
@@ -93,28 +94,25 @@ def run_data_experiments(config=None, **kwargs):
             ### We need to set the first hidden layer to the number of features
             _config.model.hidden_features[0] = _config.model.in_features * _config.model.hidden_features[0]
 
-
-        #print(config.trainer)
-
         model = run_data_experiment(config=_config,logger=logger, **kwargs)
 
         summary_logger.add_object("dataset",dataset_name)
-        summary_logger.add_object("model",model)
+        #summary_logger.add_object("model",model)
 
+        if isinstance(model,torch.nn.Module):
+            params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            summary_logger.add_value("params",params)
 
-        params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-        summary_logger.add_value("params",params)
-
-        test_loss = logger.numpy_data["test_loss"]
+        test_loss = np.array(logger.numpy_data["test_loss"])
         min_test_loss = np.min(test_loss)
 
-        print("Test loss shape")
+        print("Test loss")
         print(test_loss.shape)
 
-        val_loss = logger.numpy_data["val_loss"]
+        val_loss = np.array(logger.numpy_data["val_loss"])
         min_val_loss_idx = np.argmin(val_loss)
 
-        print("Val loss shape")
+        print("Val loss")
         print(val_loss.shape)
 
         summary_logger.add_value("min_val_test_loss",test_loss[min_val_loss_idx])
@@ -173,17 +171,15 @@ def run_data_experiment(config=None,logger=None, **kwargs):
     print(config.model)
     
     sample_points, sample_values = dataset.generate_samples()
-    print(f"Sampled {sample_values.shape}")
+    print(f"Sampled {sample_points.shape} {sample_values.shape}")
     
     #function.plot()   
 
     # Split the dataset into training (60%), validation (20%), and test (20%)
-    train_points, test_points, train_values, test_values = train_test_split(
-        sample_points, sample_values, test_size=0.2, random_state=config.seed)
+    train_points, test_points, train_values, test_values = train_test_split(sample_points, sample_values, test_size=config.test_split_size, random_state=config.seed)
 
     # Further split the training set into training and validation sets
-    train_points, val_points, train_values, val_values = train_test_split(
-        train_points, train_values, test_size= config.val_split_size / (1 - config.test_split_size) , random_state=config.seed)
+    train_points, val_points, train_values, val_values = train_test_split(train_points, train_values, test_size= config.val_split_size / (1 - config.test_split_size) , random_state=config.seed)
 
     train_dataset = FunctionSampleDataset(train_points, train_values)
     val_dataset = FunctionSampleDataset(val_points, val_values)
