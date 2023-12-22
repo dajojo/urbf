@@ -85,7 +85,7 @@ def run_data_experiments(config=None, **kwargs):
 
         if None in _config.model.ranges:
             ### As a test we set the range to the global min and max 
-            _config.model.ranges = (np.min(min_vals,axis=0),np.max(max_vals,axis=0))
+            _config.model.ranges = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
             #_config.model.ranges = list(zip(min_vals,max_vals))
             print("Set ranges to ",_config.model.ranges)
 
