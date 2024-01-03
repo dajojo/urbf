@@ -40,7 +40,7 @@ def run_data_experiments(config=None, **kwargs):
     ### implement checkpoints
     ### implement logging for different datasets
 
-    datasets = regression_dataset_names[:8]
+    datasets = regression_dataset_names
 
     log_config = eu.AttrDict(
         directory = eu.DEFAULT_DATA_DIRECTORY,
@@ -160,20 +160,27 @@ def run_data_experiment(config=None,logger=None, **kwargs):
     # set the config based on the default config, given config, and the given function arguments
     config = eu.combine_dicts(kwargs, config, default_config)
 
+
     # set random seeds with seed defined in the config
     eu.misc.seed(config)
 
     ##
     dataset = eu.misc.create_object_from_config(config.dataset)
-    trainer = eu.misc.create_object_from_config(config.trainer)
-    model = eu.misc.create_object_from_config(config.model)
 
-    print(config.model)
-    
     sample_points, sample_values = dataset.generate_samples()
     print(f"Sampled {sample_points.shape} {sample_values.shape}")
     
-    #function.plot()   
+    ## 
+    min_vals = np.min(sample_points,axis=0)
+    max_vals = np.max(sample_points,axis=0)
+
+    if None in config.model.ranges:
+        ### As a test we set the range to the global min and max 
+        config.model.ranges = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
+
+    trainer = eu.misc.create_object_from_config(config.trainer)
+    model = eu.misc.create_object_from_config(config.model)
+    
 
     # Split the dataset into training (60%), validation (20%), and test (20%)
     train_points, test_points, train_values, test_values = train_test_split(sample_points, sample_values, test_size=config.test_split_size, random_state=config.seed)
