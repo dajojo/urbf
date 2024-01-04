@@ -183,19 +183,20 @@ class URBFLayer(torch.nn.Module):
 
             curr_range = torch.stack([min,max],dim=1)
 
-            print(f"Current adaptive range: {self.rbf_layer.adaptive_range}")
-            print(f"Current Batch range: {curr_range}")
+
             
             if self.rbf_layer.adaptive_range == None:
                 #### init the adaptive range
+                print(f"Init adaptive range with current batch range: {curr_range}")
                 self.rbf_layer.adaptive_range = curr_range
 
             else:
                 delta = curr_range - self.rbf_layer.adaptive_range
-
-                print(f"Delta: {delta} {delta.shape}")
                 
                 if (delta[:,0] < 0).any() or (delta[:,1] > 0).any():
+                    print(f"Current adaptive range: {self.rbf_layer.adaptive_range}")
+                    print(f"Current Batch range: {curr_range}")
+                    print(f"Delta: {delta} {delta.shape}")
                     self.rbf_layer.update_adaptive_range(delta)
 
                 
@@ -322,7 +323,7 @@ class RBFLayer(torch.nn.Module):
 
         with torch.no_grad():
 
-            self.adaptive_range = self.adaptive_range + delta_range
+            self.adaptive_range = self.adaptive_range + delta_range * 2 ### we double the range to overshoot the required range and then cut it back to the required range. Might be more stable than directly setting the range to the required range
             print(f"New adaptive range: {self.adaptive_range}")
 
             if self.init_with_spektral:
@@ -340,7 +341,7 @@ class RBFLayer(torch.nn.Module):
                                 break
 
                             self.means[(dim + 1)*self.out_features_per_in_feature - left_features] = dim_min + (abs_range/(level*2))*(neuron*2 + 1)
-                            self.stds[(dim + 1)*self.out_features_per_in_feature - left_features] = abs_range/(level * 2)
+                            self.stds[(dim + 1)*self.out_features_per_in_feature - left_features] = abs_range*2/(level)
 
                             self.active[(dim + 1)*self.out_features_per_in_feature - left_features] = True
 

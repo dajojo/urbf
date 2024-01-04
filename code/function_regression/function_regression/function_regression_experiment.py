@@ -132,7 +132,7 @@ def run_experiment(config=None, **kwargs):
 
     # Split the dataset into training (60%), validation (20%), and test (20%)
     train_points, test_points, train_values, test_values = train_test_split(
-        sample_points, sample_values, test_size=0.2, random_state=config.seed)
+        sample_points, sample_values, test_size=config.test_split_size, random_state=config.seed)
 
     # Further split the training set into training and validation sets
     train_points, val_points, train_values, val_values = train_test_split(

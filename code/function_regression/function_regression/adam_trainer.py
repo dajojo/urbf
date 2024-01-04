@@ -14,7 +14,7 @@ class AdamTrainer:
         def_config.urbf_learning_rate = None
         def_config.n_epochs = 100
         def_config.batch_size = 32
-        def_config.device = "auto"
+        def_config.device = "cpu"
         def_config.use_adaptive_range = False
         def_config.is_classification = False
         return def_config
@@ -55,6 +55,7 @@ class AdamTrainer:
         
         if self.config.is_classification:
             criterion = torch.nn.CrossEntropyLoss()
+            print("picked cross entropy loss!!")
         else:
             criterion = torch.nn.MSELoss()
 
@@ -140,8 +141,14 @@ class AdamTrainer:
                 # Forward pass: compute the model output
                 outputs = model(inputs.to(device))#.squeeze()
 
+                if self.config.is_classification and len(outputs.shape) > 1:
+                    labels = labels.squeeze().long()
+                
+                print(outputs.shape)
+                print(labels.shape)
                 # Compute the loss
                 loss = criterion(outputs, labels.to(device))
+
 
                 # Backward pass: compute the gradient of the loss with respect to model parameters
                 loss.backward()
@@ -171,6 +178,8 @@ class AdamTrainer:
                     # Forward pass: compute the model output
                     outputs = model(inputs.to(device))#.squeeze()
                     # Compute the loss
+                    if self.config.is_classification and len(outputs.shape) > 1:
+                        labels = labels.squeeze().long()
                     loss = criterion(outputs, labels.to(device))
                     # Accumulate the running loss
                     running_val_loss += loss.item()
@@ -184,6 +193,10 @@ class AdamTrainer:
                     # Forward pass: compute the model output
                     outputs = model(inputs.to(device))#.squeeze()
                     # Compute the loss
+
+                    if self.config.is_classification and len(outputs.shape) > 1:
+                        labels = labels.squeeze().long()
+
                     loss = criterion(outputs, labels.to(device))
                     # Accumulate the running loss
                     running_test_loss += loss.item()

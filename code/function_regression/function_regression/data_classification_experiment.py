@@ -83,6 +83,11 @@ def run_data_classification_experiments(config=None, **kwargs):
             _config.model.in_features = sample_points.shape[-1]
             print("Set in_features to ",_config.model.in_features)
 
+        if _config.model.out_features == None:
+            _config.model.out_features = len(np.unique(sample_values))
+            print("Set out_features to ",_config.model.out_features)
+
+
         if None in _config.model.ranges:
             ### As a test we set the range to the global min and max 
             _config.model.ranges = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)

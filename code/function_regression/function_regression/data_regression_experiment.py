@@ -1,5 +1,6 @@
 from function_regression.function_sample_dataset import FunctionSampleDataset
 from function_regression.datasets.pmlb_dataset import PMLBDataset
+from function_regression.datasets.uciml_dataset import UCIMLDataset
 from function_regression.models.urbf_mlp import URBFMLP
 from function_regression.sgd_trainer import SGDTrainer
 import numpy as np
@@ -9,6 +10,7 @@ import exputils as eu
 import exputils.data.logging as log
 import time
 from pmlb import classification_dataset_names, regression_dataset_names
+from function_regression.datasets.uciml_dataset import UCIMLDataset, uciml_dataset_names
 import os
 import torch
 
@@ -40,7 +42,14 @@ def run_data_experiments(config=None, **kwargs):
     ### implement checkpoints
     ### implement logging for different datasets
 
-    datasets = regression_dataset_names
+    print(config.dataset.cls)
+
+    if config.dataset.cls is UCIMLDataset:
+        datasets = uciml_dataset_names
+    elif config.dataset.cls is PMLBDataset:
+        datasets = regression_dataset_names
+    else:
+        raise NotImplementedError
 
     log_config = eu.AttrDict(
         directory = eu.DEFAULT_DATA_DIRECTORY,
