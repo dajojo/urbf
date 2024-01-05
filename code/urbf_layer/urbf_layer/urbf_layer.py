@@ -375,5 +375,5 @@ class RBFLayer(torch.nn.Module):
             print(f"deactivating... {x.shape}")
             x = x * self.active[None,:]
 
-        return torch.exp(-0.5 * ((x - self.means) / self.stds) ** 2) #### why is coef even relevant??? this should have no influence!
+        return torch.exp(-0.5 * ((x - self.means) / self.stds) ** 2) * self.coefs #### why is coef even relevant??? this should have no influence!
     

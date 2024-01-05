@@ -5,7 +5,26 @@ from ucimlrepo import fetch_ucirepo
 import plotly.graph_objects as go
 import pandas as pd
 
-uciml_dataset_names = ['Auto MPG', 'Breast Cancer Wisconsin (Original)', 'Breast Cancer Wisconsin (Diagnostic)', 'Glass Identification', 'Heart Disease', 'Hepatitis', 'Image Segmentation', 'Ionosphere', 'Iris', 'Letter Recognition', 'Liver Disorders', 'Lung Cancer', 'Optical Recognition of Handwritten Digits', 'Spambase', 'Wine', 'Yeast', 'Zoo', 'MAGIC Gamma Telescope', 'Wine Quality', 'Parkinsons Telemonitoring', 'Diabetic Retinopathy Debrecen', 'Heart failure clinical records', 'Rice (Cammeo and Osmancik)', 'Myocardial infarction complications', 'Dry Bean Dataset', "Predict students' dropout and academic success", 'Sepsis Survival Minimal Clinical Records', 'National Health and Nutrition Health Survey 2013-2014 (NHANES) Age Prediction Subset', 'AIDS Clinical Trials Group Study 175', 'CDC Diabetes Health Indicators', 'National Poll on Healthy Aging (NPHA)']
+uciml_dataset_names = ['Auto MPG', 
+                       'Breast Cancer Wisconsin (Original)', 
+                       'Glass Identification', 
+                       'Heart Disease', 
+                       'Hepatitis', 
+                       'Liver Disorders', 
+                       'Lung Cancer', 
+                       'Optical Recognition of Handwritten Digits', 
+                       'Spambase', 
+                       'Wine', 
+                       'Zoo', 
+                       'Wine Quality', 
+                       'Parkinsons Telemonitoring', 
+                       'Diabetic Retinopathy Debrecen', 
+                       'Heart failure clinical records', 
+                       'Myocardial infarction complications', 
+                       'Sepsis Survival Minimal Clinical Records', 
+                       'AIDS Clinical Trials Group Study 175', 
+                       'CDC Diabetes Health Indicators', 
+                       'National Poll on Healthy Aging (NPHA)']
 
 
 # [
@@ -39,6 +58,7 @@ class UCIMLDataset():
         def_config = eu.AttrDict()
         def_config.name = "1028_SWD"
         def_config.in_features = 10
+        def_config.max_samples = 10000
         return def_config
 
     def __init__(self, config=None, **kwargs):
@@ -65,11 +85,13 @@ class UCIMLDataset():
         features_df_clean = combined_df_clean[features_df.columns]
         target_df_clean = combined_df_clean[target_df.columns]
 
-        X = features_df_clean.to_numpy()
-        Y = target_df_clean.to_numpy()
+        X = features_df_clean.to_numpy().astype(np.float32)
+        Y = target_df_clean.to_numpy().astype(np.float32)
 
-        X = X[:np.min([X.shape[0],10000])]
-        Y = Y[:np.min([Y.shape[0],10000])]
+        max_samples = self.config.max_samples
+
+        X = X[:np.min([X.shape[0],max_samples])]
+        Y = Y[:np.min([Y.shape[0],max_samples])]
 
         #Y = np.expand_dims(Y, axis=1)
 

@@ -22,7 +22,8 @@ config = eu.AttrDict(
 
     dataset = eu.AttrDict(
         cls=function_regression.datasets.<dataset>,
-        name=<name>
+        name=<name>,
+        max_samples=<max_samples>,
         ),
     
     trainer = eu.AttrDict(

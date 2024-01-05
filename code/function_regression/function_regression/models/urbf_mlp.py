@@ -60,6 +60,7 @@ class URBFMLP(torch.nn.Module):
             N_in = self.config.in_features
 
             reduced_first_layer_size = int((2 + N_u)*N_u / (N_in + N_u))
+            reduced_first_layer_size = N_u
 
             self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=reduced_first_layer_size))
             self.layers.append(torch.nn.ReLU())

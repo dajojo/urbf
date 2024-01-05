@@ -11,6 +11,7 @@ class PMLBDataset():
         def_config = eu.AttrDict()
         def_config.name = "1028_SWD"
         def_config.in_features = 10
+        def_config.max_samples = 10000
         return def_config
 
     def __init__(self, config=None, **kwargs):
@@ -21,8 +22,11 @@ class PMLBDataset():
         print(f"fetching: {self.config.name}")
         X,Y = fetch_data(self.config.name, return_X_y=True,) ## -> X: (n_samples, n_features), Y: (n_samples,)
 
-        X = X[:np.min([X.shape[0],10000])]
-        Y = Y[:np.min([Y.shape[0],10000])]
+        max_samples = self.config.max_samples
+
+
+        X = X[:np.min([X.shape[0],max_samples])]
+        Y = Y[:np.min([Y.shape[0],max_samples])]
 
         Y = np.expand_dims(Y, axis=1)
 
