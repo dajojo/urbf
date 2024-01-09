@@ -12,12 +12,11 @@ class DiscontinuousFunction(BaseFunction):
     def default_config():
         def_config = eu.AttrDict()
 
-        # defines how long a certain action is kept
         def_config.in_features = 2
         def_config.ranges = (-5,5)
         def_config.peak_distr_ranges = (-5,5)
         def_config.difficulty = 2
-        def_config.coef = np.array([[5,15],[5,15]])
+        def_config.coef = np.array([[-1,1],[0,0]])
         
         def_config.sample_rates = [5,5]
 
@@ -41,13 +40,21 @@ class DiscontinuousFunction(BaseFunction):
 
         value = 0
 
-        coef = self.config.coef.transpose()
+        means = self.config.means
+        height = self.config.coef
+        depth = self.config.stds
 
-        for dim in range(len(coef)):
+        peak_distr_ranges = self.config.peak_distr_ranges
 
-            p = Polynomial(coef[dim])
+        for step in range(len(means)):
 
-            value = value + p(input[dim])#(np.sin(input[dim]) * np.sin((1*input[dim]**2)/np.pi)**2*coef[dim])
+            condition = True
+
+            for dim in range(len(means[step])):
+                condition = condition and (abs(input[dim] - means[step][dim]) < depth[step] * (peak_distr_ranges[dim][1] - peak_distr_ranges[dim][0])/2)
+
+            if condition:
+                value = value + height[step][0]
 
         return value
 

@@ -51,25 +51,24 @@ TODO:
 
 ### Observation
 
-When using mean grad input, the initial grad in the first 20 steps diverges...
-- Higher grads indicate higher importance
-- Lower grads indicate gaussians with lower importance
-  
-Note: Neurons at the start might be also low since they might not have a great impact.
-There is fluent transition between important and unimportant gaussians...
+Polynomial: The URBF superiority is not clearly given
+    - Optimization: 
+      - For Adam MLP is better than URBF
+      - For SGD URBF is better than MLP but both are worse than MLP with Adam
+      - URBF is almost equally good for both optimization strategies
+    - Sample Size:
+      - URBF is better than MLP for high sample size
+      - for low datasize URBF seems to overfit easily
 
-Split & Merge:
-1. Condition
-   1. Frequency Domain? A strong Highfrequency signal might suggest unwanted behaviour -> Split!
-   2. Use relative distance between mean input grads -> Split for highest and merge for lowest
-      1. But be aware: noisy signal -> sum over batches until a relative distance is reached 
-      2. Split & Merge
-      3. Increase threshold by Factor b
-      4. repeat
-2. Split & Merge
-   1. Which Gaussians are split and which are merged?
+Michelewicz: URBF outperforms MLP clearly
+    - Optimization:
+      - For Both strategies URBF outperforms MLP clearly
 
+Discontinuous regression: URBF outperforms MLP clearly
+    - Optimization:
+      - For Both strategies URBF outperforms MLP clearly
 
+Hypothesis: URBF can show its strength when it comes to regress highfrequency functions
 
 #### Wiki
 `register_full_backward_hook`:

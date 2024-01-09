@@ -104,18 +104,18 @@ def run_experiment(config=None, **kwargs):
 
     ####### add independent dimensions
     for independent_dim_range in config.function.independent_dim_ranges:
+        print(f"Adding independent dimension: {independent_dim_range}")
         min_val, max_val = independent_dim_range
+
+        config.model.in_features += 1
+        config.model.ranges.append((min_val,max_val))
 
         if len(config.model.hidden_features) > 0:
             ## Otherwise it is an sklearn model
             features_per_input = config.model.hidden_features[0] // config.model.in_features
-
             ## also increase the input dimensionality and the ranges and the hidden features
-            config.model.in_features += 1
-            config.model.ranges.append((min_val,max_val))
             config.model.hidden_features[0] = config.model.hidden_features[0] + features_per_input
 
-    ##
     function = eu.misc.create_object_from_config(config.function)
     trainer = eu.misc.create_object_from_config(config.trainer)
     model = eu.misc.create_object_from_config(config.model)
@@ -123,11 +123,13 @@ def run_experiment(config=None, **kwargs):
     sample_points, sample_values = function.generate_samples(config.function.ranges)
     print(f"Sampled {sample_values.shape}")
 
-    
+    ### add independent dimensions adding noise that are used to check if the model is able to ignore them
     for independent_dim_range in config.function.independent_dim_ranges:
+        print(f"adding ipndependent dimension to input data.. current data: {sample_points.shape} {sample_points[0,:]}")
         min_val, max_val = independent_dim_range
         independent_dim = np.random.uniform(min_val, max_val, sample_values.shape[0])
         sample_points = np.concatenate((sample_points, independent_dim.reshape(-1,1)), axis=1)
+        print(f"added ipndependent dimension to input data.. current data: {sample_points.shape} {sample_points[0,:]}")
 
 
     # Split the dataset into training (60%), validation (20%), and test (20%)
@@ -150,6 +152,14 @@ def run_experiment(config=None, **kwargs):
 
     print(f"Duration: {time.strftime('%H:%M:%S', time.gmtime(duration))}s")
     log.add_value('duration', duration)
+
+    ### extract number of parameters
+    if hasattr(model,"parameters"):
+        params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        log.add_value("params",params)
+
+
+
     log.save()
 
     return model

@@ -1,3 +1,4 @@
 from .gaussian_mixture_function import GaussianMixtureFunction
 from .polynomial_function import PolynomialFunction
 from .michalewicz_function import MichalewiczFunction
+from .discontinuous_function import DiscontinuousFunction

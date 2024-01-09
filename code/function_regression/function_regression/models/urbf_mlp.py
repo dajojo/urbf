@@ -19,7 +19,7 @@ class URBFMLP(torch.nn.Module):
         def_config.out_features = 1
         def_config.hidden_features = [16,16,8,4]
         def_config.ranges = (-5,5)
-        def_config.sample_rates = 100
+        def_config.sample_rates = 100 ### Only for plotting purposes... can be removed later
         def_config.use_urbf = True
         def_config.use_split_merge = True
         def_config.split_merge_temperature = 0.1
@@ -60,7 +60,7 @@ class URBFMLP(torch.nn.Module):
             N_in = self.config.in_features
 
             reduced_first_layer_size = int((2 + N_u)*N_u / (N_in + N_u))
-            reduced_first_layer_size = N_u
+            #reduced_first_layer_size = N_u
 
             self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=reduced_first_layer_size))
             self.layers.append(torch.nn.ReLU())
@@ -84,7 +84,8 @@ class URBFMLP(torch.nn.Module):
 
         self.params = nn.ModuleDict({
              'urbf': nn.ModuleList([self.layers[0].rbf_layer]) if self.config.use_urbf else nn.ModuleList([]),
-             'mlp': nn.ModuleList(self.layers[1:]) if self.config.use_urbf else nn.ModuleList(self.layers),
+             'urbf_linear': nn.ModuleList([*((self.layers[0].linear_layer,) if hasattr(self.layers[0],"linear_layer") else ())]),
+             'mlp': nn.ModuleList([*self.layers[1:]]) if self.config.use_urbf else nn.ModuleList(self.layers),
             })
 
 
@@ -92,6 +93,8 @@ class URBFMLP(torch.nn.Module):
         return self.layers(x)
 
 
+
+    ### For plotting purposes only...
 
     def generate_samples(self) -> Tuple:
 

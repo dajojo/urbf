@@ -46,12 +46,10 @@ class AdamTrainer:
         if self.config.urbf_learning_rate == None:
             self.config.urbf_learning_rate = self.config.learning_rate
 
-
-
-        ## Minor experiment checking the influence of different learning rates...
         # Define an optimizer and a loss function
         optimizer = torch.optim.Adam([{'params':model.params.mlp.parameters()},
-                                     {'params':model.params.urbf.parameters(), 'lr': self.config.urbf_learning_rate,'weight_decay': 0}], lr=self.config.learning_rate)
+                                        {'params':model.params.urbf_linear.parameters(),'lr': self.config.learning_rate,'weight_decay': 0.1},
+                                     {'params':model.params.urbf.parameters(), 'lr': self.config.urbf_learning_rate,'weight_decay': 0}], lr=self.config.learning_rate,weight_decay=0)
         
         if self.config.is_classification:
             criterion = torch.nn.CrossEntropyLoss()
@@ -144,8 +142,8 @@ class AdamTrainer:
                 if self.config.is_classification and len(outputs.shape) > 1:
                     labels = labels.squeeze().long()
                 
-                print(outputs.shape)
-                print(labels.shape)
+                #print(outputs.shape)
+                #print(labels.shape)
                 # Compute the loss
                 loss = criterion(outputs, labels.to(device))
 
@@ -159,7 +157,6 @@ class AdamTrainer:
                 # Accumulate the running loss
                 running_train_loss += loss.item()#.detach().numpy()
                 #logger.add_value('train_loss_fine',loss.item())
-
 
             # Print statistics after every epoch
             logger.add_value('train_loss',running_train_loss)

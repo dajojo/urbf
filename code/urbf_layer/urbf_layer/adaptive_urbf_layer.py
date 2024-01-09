@@ -3,13 +3,13 @@ import math
 from typing import List,Tuple
 import torch.nn as nn
 from typing_extensions import Literal
+from torch.nn import functional as F
 
 class AdaptiveURBFLayer(torch.nn.Module):
 
     def __init__(self,
                 in_features:int,
                 out_features:int,
-                #device:Literal['cpu','cuda'] = 'cuda'
                 ):
         super().__init__()
 
@@ -21,7 +21,9 @@ class AdaptiveURBFLayer(torch.nn.Module):
         self.out_features = out_features
 
         self.rbf_layer = AdaptiveRBFLayer(self.out_features)
-        self.linear_layer = torch.nn.Linear(self.out_features,self.out_features)
+        
+        self.linear_layer = torch.nn.Linear(self.out_features,self.out_features,bias=False)
+
         self.activation = torch.nn.ReLU()
 
         ### init the expansion mapping to equal mapping...
@@ -36,8 +38,8 @@ class AdaptiveURBFLayer(torch.nn.Module):
         ### Significance
         self.significance = torch.ones(self.out_features)*0.5
 
-        #self.rbf_layer.register_full_backward_hook(self.rbf_backward_hook)
         self.linear_layer.register_full_backward_hook(self.liner_backward_hook)
+        #self.rbf_layer.register_full_backward_hook(self.rbf_backward_hook)
         #self.register_full_backward_hook(self.backwad_hook)
 
         ### keep track of the loss regarding linear layer output
@@ -52,6 +54,7 @@ class AdaptiveURBFLayer(torch.nn.Module):
         #print(f"LinearLayer backward hook: input->{grad_input[0].shape} output->{grad_output[0].shape}")
         if self.training:
             self.linear_layer_grad_output = grad_output[0]
+            #print(f"LinearLayer backward hook: {grad_output[0].shape} {grad_output[0].amin()} {grad_output[0].amax()}")
 
 
     def rbf_backward_hook(self,module, grad_input, grad_output):
@@ -87,22 +90,13 @@ class AdaptiveURBFLayer(torch.nn.Module):
     #     self.rbf_layer.stds = torch.nn.Parameter(vars)
 
 
-    def prune(self):
-        prune_threshold = 0.01### make it dependent on the absolute value of the adaptive range: 
-        values, indices = self.significance.topk(self.out_features // 10,largest=False)
+    # def prune(self,prune_threshold):
 
-        filtered_indices = indices[values < prune_threshold]
-        
-        self.expansion_mapping[filtered_indices,:] = 0
-        self.rbf_layer.means[filtered_indices].data.fill_(0)
-        self.rbf_layer.stds[filtered_indices].data.fill_(1)
+    #     ### We could also connect it to the potential weight it would get by growing...
+    #     #prune_threshold = #0.1### make it dependent on the absolute value of the adaptive range: 
 
-        self.significance[filtered_indices] = 0.5
-        ### Significance is set 0.5 to avoid pruning the same neurons again and again
 
-        self.linear_layer.weight[:,filtered_indices].data.fill_(0.01)
-
-    def grow(self):
+    def prune_and_grow(self):
         ## implement the grow algorithm as described in algorithm 1
         ## The bridgin gradient matrix can be calculated using "virtual" inputs coming from several gaussian candidates.
         ## we can pick the most promising candidates... also considering the gaussians that are indicated by "unprocessed" inputs
@@ -152,10 +146,37 @@ class AdaptiveURBFLayer(torch.nn.Module):
 
         linear_layer_grad_output_corr = (self.linear_layer_grad_output[:,None,None,:] * input_activations[:,:,:,None]).mean(dim=0) ## B x in x prototypes x next_neuron -> C x F
 
-        slot_indices = (self.expansion_mapping.to(device=self.linear_layer.weight.device).sum(dim=-1) == 0).nonzero()#.squeeze() ## C
+        min_significances, min_significance_indices = self.significance.topk(self.out_features//4,largest=False)
+        max_lin_grad_corr, max_lin_grad_corr_indices  = linear_layer_grad_output_corr.reshape(-1).topk(self.out_features//4,largest=True)
 
-        if slot_indices.shape[0] >= 0:
-            for slot_idx in slot_indices:
+        ### booost max lin grad corr
+
+        max_lin_grad_corr = max_lin_grad_corr * 100
+
+        diff = max_lin_grad_corr.cpu() - min_significances.cpu()
+        prune_threshold = diff[diff < 0].amax()
+
+
+        filtered_indices = min_significance_indices[min_significances < prune_threshold]
+
+        print(f"pruning: {filtered_indices} {min_significances[:3]} {max_lin_grad_corr[:3]} with threshold: {prune_threshold}")
+        
+        self.expansion_mapping[filtered_indices,:] = 0
+        self.rbf_layer.means[filtered_indices].data.fill_(0)
+        self.rbf_layer.stds[filtered_indices].data.fill_(1)
+
+        self.significance[filtered_indices] = 0.5
+        ### Significance is set 0.5 to avoid pruning the same neurons again and again
+
+        self.linear_layer.weight[:,filtered_indices].data.fill_(0.01)
+
+        
+
+        
+        free_slot_indices = (self.expansion_mapping.to(device=self.linear_layer.weight.device).sum(dim=-1) == 0).nonzero()#.squeeze() ## C
+
+        if free_slot_indices.shape[0] >= 0:
+            for slot_idx in free_slot_indices:
 
                 # Find the maximum value and its index in the tensor
                 max_val, max_in_idx = torch.max(linear_layer_grad_output_corr, dim=0)
@@ -180,7 +201,7 @@ class AdaptiveURBFLayer(torch.nn.Module):
                 print(f"Growing at: {slot_idx} set weight from: {self.linear_layer.weight[max_neuron_idx,slot_idx]} -> {linear_layer_grad_output_corr[max_in_idx,max_prototype_idx,max_neuron_idx]}")
 
                 ### we need to update the linear layer weights
-                self.linear_layer.weight[max_neuron_idx,slot_idx].data.fill_(linear_layer_grad_output_corr[max_in_idx,max_prototype_idx,max_neuron_idx] * 0.01)
+                self.linear_layer.weight[max_neuron_idx,slot_idx].data.fill_(linear_layer_grad_output_corr[max_in_idx,max_prototype_idx,max_neuron_idx])
 
                 linear_layer_grad_output_corr[max_in_idx,max_prototype_idx,:] = 0
 
@@ -225,22 +246,21 @@ class AdaptiveURBFLayer(torch.nn.Module):
                     #self.rbf_layer.init_spektrum_pattern(self.adaptive_range)
                     print(f"new adaptive range: {self.adaptive_range} from current range: {curr_range}",)
 
-            self.prune()
-            if (self.expansion_mapping.to(device=self.linear_layer.weight.device).sum(dim=-1) == 0).any() and self.linear_layer_grad_output != None and self.input != None:
-               self.grow()
+            if self.linear_layer_grad_output != None and self.input != None:
+              self.prune_and_grow()
 
             self.input = x
 
         ### Expand the dimensionality
         x = (self.expansion_mapping.to(device=self.linear_layer.weight.device) @ x.transpose(1,0)).transpose(1,0)
-         
+        
         ## calculate gauss activation per map-neuron
         y = self.rbf_layer(x)
 
         ## store significance
-        self.significance = 1/2*(self.significance + y.mean(dim=0).to("cpu"))
-
-        y = self.linear_layer(y)
+        #self.significance =   #1/2*(self.significance + y.mean(dim=0).to("cpu"))
+        self.significance = self.linear_layer.weight.abs().sum(dim=0).to("cpu")
+        y = self.linear_layer(y) 
 
         #### Hoook in here to get dL/du (presynaptic gradient) ??
         y = self.activation(y)        

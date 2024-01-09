@@ -73,22 +73,52 @@ class SGDTrainer:
             
             if hasattr(model.layers[0],'rbf_layer'):
                 means = model.layers[0].rbf_layer.state_dict()["means"].cpu().detach().numpy()
-                print(f"Updated mean: {means}")
+                #print(f"Updated mean: {means.shape}")
 
                 for idx,mean in enumerate(means):
                     logger.add_value(f"mean{idx}",mean)
 
                 stds = model.layers[0].rbf_layer.state_dict()["stds"].cpu().detach().numpy()
-                print(f"Updated stds: {stds}")
+                #print(f"Updated stds: {stds.shape}")
 
                 for idx,std in enumerate(stds):
                     logger.add_value(f"std{idx}",std)
+                
+                # if hasattr(model.layers[0].rbf_layer,'coefs'):
+                #     coefs = model.layers[0].rbf_layer.coefs.cpu().detach().numpy()
+                #     #print(f"Updated coefs: {coefs.shape}")
 
-                coefs = model.layers[0].rbf_layer.state_dict()["coefs"].cpu().detach().numpy()
-                print(f"Updated coefs: {coefs}")
+                #     for idx,coef in enumerate(coefs):
+                #         logger.add_value(f"coef{idx}",coef)
 
-                for idx,coef in enumerate(coefs):
-                    logger.add_value(f"coef{idx}",coef)
+                if hasattr(model.layers[0],'expansion_mapping'):
+                    expansion_mapping = model.layers[0].expansion_mapping.cpu().detach().numpy()
+                    #print(f"Updated expansion_mapping: {expansion_mapping.shape}")
+
+                    for idx,expansion_map in enumerate(expansion_mapping):
+                        logger.add_value(f"expansion_map{idx}",expansion_map.argmax()+expansion_map.sum())
+
+                # if hasattr(model.layers[0],'significance'):
+                #     significances = model.layers[0].significance.cpu().detach().numpy()
+                #     #print(f"Updated significance: {significances.shape}")
+
+                #     for idx,significance in enumerate(significances):
+                #         logger.add_value(f"significance{idx}",significance)
+
+                # if hasattr(model.layers[0],'linear_layer_grad_output') and model.layers[0].linear_layer_grad_output != None:
+                #     linear_layer_grad_outputs = model.layers[0].linear_layer_grad_output[0]#.mean(dim=0)
+                #     #print(f"Updated linear_layer_grad_output: {linear_layer_grad_outputs.shape}")
+
+                #     for idx,linear_layer_grad_output in enumerate(linear_layer_grad_outputs):
+                #         logger.add_value(f"linear_layer_grad_output{idx}",linear_layer_grad_output.cpu().detach().numpy())
+
+
+                # if hasattr(model.layers[0],'input') and model.layers[0].input != None:
+                #     inputs = model.layers[0].input[0]#.mean(dim=0)
+                #     #print(f"Updated input: {inputs.shape}")
+
+                #     for idx,input in enumerate(inputs):
+                #         logger.add_value(f"input{idx}",input.cpu().detach().numpy())
 
 
 
