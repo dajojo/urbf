@@ -17,7 +17,9 @@ config = eu.AttrDict(
         ranges=<model_ranges>,
         init_with_spektral=<init_with_spektral>,
         use_adaptive_range=<use_adaptive_range>,
-        use_dynamic_architecture=<use_dynamic_architecture>
+        use_dynamic_architecture=<use_dynamic_architecture>,
+        use_ntk=<use_ntk>,
+        scale=<scale>
         ),
 
     function = eu.AttrDict(

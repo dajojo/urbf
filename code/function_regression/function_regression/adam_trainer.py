@@ -46,11 +46,16 @@ class AdamTrainer:
         if self.config.urbf_learning_rate == None:
             self.config.urbf_learning_rate = self.config.learning_rate
 
-        # Define an optimizer and a loss function
-        optimizer = torch.optim.Adam([{'params':model.params.mlp.parameters()},
-                                        {'params':model.params.urbf_linear.parameters(),'lr': self.config.learning_rate,'weight_decay': 0.1},
-                                     {'params':model.params.urbf.parameters(), 'lr': self.config.urbf_learning_rate,'weight_decay': 0}], lr=self.config.learning_rate,weight_decay=0)
-        
+
+        if hasattr(model.params,"urbf_linear") or hasattr(model.params,"urbf"):
+            # Define an optimizer and a loss function
+            optimizer = torch.optim.Adam([{'params':model.params.mlp.parameters()},
+                                        {'params':model.params.urbf_linear.parameters(),'lr': self.config.learning_rate,'weight_decay': 0.0001}, ## what if we use a weight decay but no adaptive?
+                                        {'params':model.params.urbf.parameters(), 'lr': self.config.urbf_learning_rate,'weight_decay': 0}], lr=self.config.learning_rate,weight_decay=0)
+        else:
+            optimizer = torch.optim.Adam(model.parameters(), lr=self.config.learning_rate,weight_decay=0)
+
+
         if self.config.is_classification:
             criterion = torch.nn.CrossEntropyLoss()
             print("picked cross entropy loss!!")

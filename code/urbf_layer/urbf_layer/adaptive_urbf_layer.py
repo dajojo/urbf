@@ -4,6 +4,7 @@ from typing import List,Tuple
 import torch.nn as nn
 from typing_extensions import Literal
 from torch.nn import functional as F
+import numpy as np
 
 class AdaptiveURBFLayer(torch.nn.Module):
 
@@ -144,18 +145,26 @@ class AdaptiveURBFLayer(torch.nn.Module):
         input_activations = torch.stack(input_activations,dim=1) ## B x in x prototypes
         ### linear_layer_grad_output: B x C
 
-        linear_layer_grad_output_corr = (self.linear_layer_grad_output[:,None,None,:] * input_activations[:,:,:,None]).mean(dim=0) ## B x in x prototypes x next_neuron -> C x F
+        linear_layer_grad_output_corr = (self.linear_layer_grad_output[:,None,None,:] * input_activations[:,:,:,None]).mean(dim=0) ## B x in x prototypes x next_neuron -> C x in x prototypes x next_neuron
 
-        min_significances, min_significance_indices = self.significance.topk(self.out_features//4,largest=False)
-        max_lin_grad_corr, max_lin_grad_corr_indices  = linear_layer_grad_output_corr.reshape(-1).topk(self.out_features//4,largest=True)
+
+        min_significances, min_significance_indices = self.significance.topk(self.out_features//10,largest=False)
+        max_lin_grad_corr, max_lin_grad_corr_indices  = linear_layer_grad_output_corr.abs().sum(dim=-1).reshape(-1).topk(self.out_features//10,largest=True)
 
         ### booost max lin grad corr
 
-        max_lin_grad_corr = max_lin_grad_corr * 100
+        max_lin_grad_corr = max_lin_grad_corr * 10 ### this factor should be used as a kind of temperature to control the growth
 
-        diff = max_lin_grad_corr.cpu() - min_significances.cpu()
-        prune_threshold = diff[diff < 0].amax()
+        diff = min_significances.cpu() - max_lin_grad_corr.cpu() 
 
+        if diff[diff < 0].shape[0] == 0:
+            ## no pruning needed
+            #print(f"no pruning needed: {min_significances[:3]} {max_lin_grad_corr[:3]} {diff[:3]}")
+
+            return
+        
+        prune_threshold_idx = diff[diff < 0].argmax() 
+        prune_threshold = min_significances[prune_threshold_idx]
 
         filtered_indices = min_significance_indices[min_significances < prune_threshold]
 
@@ -165,30 +174,32 @@ class AdaptiveURBFLayer(torch.nn.Module):
         self.rbf_layer.means[filtered_indices].data.fill_(0)
         self.rbf_layer.stds[filtered_indices].data.fill_(1)
 
-        self.significance[filtered_indices] = 0.5
+        #self.significance[filtered_indices] = 0.5
         ### Significance is set 0.5 to avoid pruning the same neurons again and again
 
         self.linear_layer.weight[:,filtered_indices].data.fill_(0.01)
-
-        
-
         
         free_slot_indices = (self.expansion_mapping.to(device=self.linear_layer.weight.device).sum(dim=-1) == 0).nonzero()#.squeeze() ## C
 
         if free_slot_indices.shape[0] >= 0:
             for slot_idx in free_slot_indices:
 
-                # Find the maximum value and its index in the tensor
-                max_val, max_in_idx = torch.max(linear_layer_grad_output_corr, dim=0)
+                # # Find the maximum value and its index in the tensor
+                # max_val, max_in_idx = torch.max(linear_layer_grad_output_corr, dim=0)
 
-                # Find the maximum index in the second dimension
-                _, max_prototype_idx = torch.max(max_val, dim=0)
+                # # Find the maximum index in the second dimension
+                # _, max_prototype_idx = torch.max(max_val, dim=0)
 
-                # Find the maximum index in the third dimension
-                _, max_neuron_idx = torch.max(max_prototype_idx, dim=0)
+                # # Find the maximum index in the third dimension
+                # _, max_neuron_idx = torch.max(max_prototype_idx, dim=0)
 
-                max_prototype_idx = max_prototype_idx[max_neuron_idx]
-                max_in_idx = max_in_idx[max_prototype_idx, max_neuron_idx]
+                # max_prototype_idx = max_prototype_idx[max_neuron_idx]
+                # max_in_idx = max_in_idx[max_prototype_idx, max_neuron_idx]
+
+                b = torch.argmax(linear_layer_grad_output_corr) #### we should take into account that the new connection might also ficilitate more neurons in the next layer b = torch.argmax(linear_layer_grad_output_corr.sum(dim=-1))
+                idx = np.unravel_index(b.cpu(), linear_layer_grad_output_corr.shape)
+
+                max_in_idx,max_prototype_idx,max_neuron_idx = idx 
 
                 mean = input_dim_rbf_layers[max_in_idx].means[max_prototype_idx]
                 var = input_dim_rbf_layers[max_in_idx].stds[max_prototype_idx]

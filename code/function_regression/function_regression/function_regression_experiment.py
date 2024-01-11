@@ -56,7 +56,6 @@ def run_experiment(config=None, **kwargs):
             cls=GaussianMixtureFunction,
             in_features=2,
             difficulty=2,
-            #coef=(-5,5),
             independent_dim_ranges=[],
             ranges=(-5,5),
             peak_distr_ranges = (-5,5)),
