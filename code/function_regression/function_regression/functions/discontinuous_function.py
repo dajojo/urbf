@@ -36,25 +36,26 @@ class DiscontinuousFunction(BaseFunction):
         assert self.config.coef.shape[1] == self.config.in_features, "in_features must be the same size as dim of the means"
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
-        input = args[0]
+        input = np.array(args[0])
 
         value = 0
 
-        means = self.config.means
-        height = self.config.coef
-        depth = self.config.stds
-
-        peak_distr_ranges = self.config.peak_distr_ranges
+        means = np.array(self.config.means)
+        height = np.array(self.config.coef)
+        depth = np.array(self.config.stds)
+        peak_distr_ranges = np.array(self.config.peak_distr_ranges)
 
         for step in range(len(means)):
+            mean = means[step]
+            range_scale = np.array([(peak_distr_ranges[dim][1] - peak_distr_ranges[dim][0])/2 for dim in range(input.shape[0])])
+            scaled_depth = depth[step] * range_scale
 
-            condition = True
+            # Calculate the Euclidean distance from the mean
+            distance = np.linalg.norm(input - mean)
 
-            for dim in range(len(means[step])):
-                condition = condition and (abs(input[dim] - means[step][dim]) < depth[step] * (peak_distr_ranges[dim][1] - peak_distr_ranges[dim][0])/2)
-
-            if condition:
-                value = value + height[step][0]
+            # Check if the distance is within the scaled depth
+            if distance < np.linalg.norm(scaled_depth):
+                value += height[step][0]
 
         return value
 

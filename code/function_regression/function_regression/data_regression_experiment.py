@@ -92,11 +92,11 @@ def run_data_experiments(config=None, **kwargs):
             _config.model.in_features = sample_points.shape[-1]
             print("Set in_features to ",_config.model.in_features)
 
-        if None in _config.model.ranges:
+        if None in _config.model.range:
             ### As a test we set the range to the global min and max 
-            _config.model.ranges = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
+            _config.model.range = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
             #_config.model.ranges = list(zip(min_vals,max_vals))
-            print("Set ranges to ",_config.model.ranges)
+            print("Set ranges to ",_config.model.range)
 
 
         if len(_config.model.hidden_features) > 0:
@@ -146,7 +146,7 @@ def run_data_experiment(config=None,logger=None, **kwargs):
         model = eu.AttrDict(cls=URBFMLP,            
             in_features=2,
             use_urbf=False,
-            ranges=(-10,5),   
+            range=(-10,5),   
             use_split_merge=False,
             split_merge_temperature=0.1,     
             use_back_tray=False,
@@ -183,9 +183,9 @@ def run_data_experiment(config=None,logger=None, **kwargs):
     min_vals = np.min(sample_points,axis=0)
     max_vals = np.max(sample_points,axis=0)
 
-    if None in config.model.ranges:
+    if None in config.model.range:
         ### As a test we set the range to the global min and max 
-        config.model.ranges = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
+        config.model.range = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
 
     trainer = eu.misc.create_object_from_config(config.trainer)
     model = eu.misc.create_object_from_config(config.model)

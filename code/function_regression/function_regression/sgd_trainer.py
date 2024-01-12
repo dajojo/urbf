@@ -49,7 +49,7 @@ class SGDTrainer:
         ## Minor experiment checking the influence of different learning rates...
         # Define an optimizer and a loss function
         optimizer = torch.optim.SGD([{'params':model.params.mlp.parameters()},
-                                     {'params':model.params.urbf.parameters(), 'lr': self.config.urbf_learning_rate}], lr=self.config.learning_rate)
+                                     {'params':model.params.rbf.parameters(), 'lr': self.config.urbf_learning_rate}], lr=self.config.learning_rate)
         
         # Define an optimizer and a loss function
         #optimizer = torch.optim.SGD([model.parameters()], lr=self.config.learning_rate)

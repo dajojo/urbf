@@ -4,6 +4,8 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 import torch
 import exputils.data.logging as log
+from function_regression.models.rbf_mlp import RBFMLP
+
 
 class AdamTrainer:
 
@@ -12,10 +14,10 @@ class AdamTrainer:
         def_config = eu.AttrDict()
         def_config.learning_rate = 0.01
         def_config.urbf_learning_rate = None
+        def_config.rbf_learning_rate = None
         def_config.n_epochs = 100
         def_config.batch_size = 32
         def_config.device = "cpu"
-        def_config.use_adaptive_range = False
         def_config.is_classification = False
         return def_config
     
@@ -46,12 +48,23 @@ class AdamTrainer:
         if self.config.urbf_learning_rate == None:
             self.config.urbf_learning_rate = self.config.learning_rate
 
+        if self.config.rbf_learning_rate == None:
+            self.config.rbf_learning_rate = self.config.learning_rate
 
         if hasattr(model.params,"urbf_linear") or hasattr(model.params,"urbf"):
+
             # Define an optimizer and a loss function
             optimizer = torch.optim.Adam([{'params':model.params.mlp.parameters()},
-                                        {'params':model.params.urbf_linear.parameters(),'lr': self.config.learning_rate,'weight_decay': 0.0001}, ## what if we use a weight decay but no adaptive?
-                                        {'params':model.params.urbf.parameters(), 'lr': self.config.urbf_learning_rate,'weight_decay': 0}], lr=self.config.learning_rate,weight_decay=0)
+                                        {'params':model.params.urbf_linear.parameters(),'lr': self.config.learning_rate,'weight_decay': 0.0001},
+                                        {'params':model.params.urbf.parameters(), 'lr': self.config.urbf_learning_rate,'weight_decay': 0},
+                      ], lr=self.config.learning_rate,weight_decay=0)
+            
+        elif isinstance(model, RBFMLP):
+            # Define an optimizer and a loss function
+            optimizer = torch.optim.Adam([{'params':model.params.mlp.parameters()},
+                                        {'params':model.params.rbf_linear.parameters(),'lr': self.config.learning_rate,'weight_decay': 0.0001},
+                                        {'params':model.params.rbf.parameters(), 'lr': self.config.rbf_learning_rate,'weight_decay': 0},], lr=self.config.learning_rate,weight_decay=0)
+            
         else:
             optimizer = torch.optim.Adam(model.parameters(), lr=self.config.learning_rate,weight_decay=0)
 
@@ -92,12 +105,6 @@ class AdamTrainer:
                 for idx,std in enumerate(stds):
                     logger.add_value(f"std{idx}",std)
                 
-                # if hasattr(model.layers[0].rbf_layer,'coefs'):
-                #     coefs = model.layers[0].rbf_layer.coefs.cpu().detach().numpy()
-                #     #print(f"Updated coefs: {coefs.shape}")
-
-                #     for idx,coef in enumerate(coefs):
-                #         logger.add_value(f"coef{idx}",coef)
 
                 if hasattr(model.layers[0],'expansion_mapping'):
                     expansion_mapping = model.layers[0].expansion_mapping.cpu().detach().numpy()
@@ -106,49 +113,17 @@ class AdamTrainer:
                     for idx,expansion_map in enumerate(expansion_mapping):
                         logger.add_value(f"expansion_map{idx}",expansion_map.argmax()+expansion_map.sum())
 
-                # if hasattr(model.layers[0],'significance'):
-                #     significances = model.layers[0].significance.cpu().detach().numpy()
-                #     #print(f"Updated significance: {significances.shape}")
-
-                #     for idx,significance in enumerate(significances):
-                #         logger.add_value(f"significance{idx}",significance)
-
-                # if hasattr(model.layers[0],'linear_layer_grad_output') and model.layers[0].linear_layer_grad_output != None:
-                #     linear_layer_grad_outputs = model.layers[0].linear_layer_grad_output[0]#.mean(dim=0)
-                #     #print(f"Updated linear_layer_grad_output: {linear_layer_grad_outputs.shape}")
-
-                #     for idx,linear_layer_grad_output in enumerate(linear_layer_grad_outputs):
-                #         logger.add_value(f"linear_layer_grad_output{idx}",linear_layer_grad_output.cpu().detach().numpy())
-
-
-                # if hasattr(model.layers[0],'input') and model.layers[0].input != None:
-                #     inputs = model.layers[0].input[0]#.mean(dim=0)
-                #     #print(f"Updated input: {inputs.shape}")
-
-                #     for idx,input in enumerate(inputs):
-                #         logger.add_value(f"input{idx}",input.cpu().detach().numpy())
-
-
-
             for i, (inputs, labels) in enumerate(train_loader):
-
-                ### TEMPORARY FOR TESTING ONLY ###
-                #inputs = inputs[:10+i]
-                #labels = labels[:10+i]
-
 
                 # Zero the parameter gradients
                 optimizer.zero_grad()
 
-                #inputs.require_grad = True
                 # Forward pass: compute the model output
                 outputs = model(inputs.to(device))#.squeeze()
 
                 if self.config.is_classification and len(outputs.shape) > 1:
                     labels = labels.squeeze().long()
                 
-                #print(outputs.shape)
-                #print(labels.shape)
                 # Compute the loss
                 loss = criterion(outputs, labels.to(device))
 
@@ -165,10 +140,6 @@ class AdamTrainer:
 
             # Print statistics after every epoch
             logger.add_value('train_loss',running_train_loss)
-
-            # Keep track of the learning rate... 
-            #logger.add_value('lr',optimizer.param_groups[0]['lr'])
-            #logger.add_value('urbf_lr',optimizer.param_groups[1]['lr'])
             
             print(f'Epoch {epoch + 1}/{self.config.n_epochs} - Train Loss: {running_train_loss/len(train_loader):.4f}')
             eu.misc.update_status(f'Epoch {epoch + 1}/{self.config.n_epochs} - Train Loss: {running_train_loss/len(train_loader):.4f}')

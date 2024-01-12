@@ -1,3 +1,4 @@
+from .rbf_mlp import RBFMLP
 from .urbf_mlp import URBFMLP
 from .ffn_mlp import FFNMLP
 from .svr import SVR

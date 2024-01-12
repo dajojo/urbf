@@ -34,7 +34,6 @@ class URBFMLP(torch.nn.Module):
         return def_config
 
 
-    #def __init__(self, in_features:int, out_features:int, hidden_features:List[int]):
     def __init__(self, config=None, **kwargs):
         super().__init__()
 
@@ -83,8 +82,8 @@ class URBFMLP(torch.nn.Module):
         self.layers = torch.nn.Sequential(*self.layers)
 
         self.params = nn.ModuleDict({
-             'urbf': nn.ModuleList([self.layers[0].rbf_layer]) if self.config.use_urbf else nn.ModuleList([]),
-             'urbf_linear': nn.ModuleList([*((self.layers[0].linear_layer,) if hasattr(self.layers[0],"linear_layer") else ())]),
+             'rbf': nn.ModuleList([self.layers[0].rbf_layer]) if self.config.use_urbf else nn.ModuleList([]),
+             'rbf_linear': nn.ModuleList([*((self.layers[0].linear_layer,) if hasattr(self.layers[0],"linear_layer") else ())]),
              'mlp': nn.ModuleList([*self.layers[1:]]) if self.config.use_urbf else nn.ModuleList(self.layers),
             })
 
