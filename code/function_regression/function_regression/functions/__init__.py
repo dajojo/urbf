@@ -4,3 +4,4 @@ from .michalewicz_function import MichalewiczFunction
 from .discontinuous_function import DiscontinuousFunction
 from .sinusodial_function import SinusodialFunction
 from .himmelblau_function import HimmelblauFunction
+from .noise_function import WhiteNoiseFunction
