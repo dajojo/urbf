@@ -25,7 +25,7 @@ config = eu.AttrDict(
         in_features=<in_features>,
         ranges=<func_ranges>,
         peak_distr_ranges=<peak_distr_ranges>,
-        sample_rates = [10,10]
+        sample_rates = [20,20]
         ),
     
     trainer = eu.AttrDict(
