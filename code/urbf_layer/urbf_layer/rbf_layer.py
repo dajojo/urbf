@@ -32,9 +32,9 @@ class RBFLayer(torch.nn.Module):
 
             self.expansion_mapping.requires_grad_(False)
 
+            ## initialize the means and stds
             means = (torch.zeros(self.out_features))
             stds = (torch.ones(self.out_features))
-
 
             for dim, dim_range in enumerate(self.range):
                 dim_min,dim_max = dim_range
@@ -52,13 +52,19 @@ class RBFLayer(torch.nn.Module):
             self.stds = torch.nn.Parameter(stds)
 
         else:
+            means = torch.zeros(self.in_features, self.out_features)
 
-            self.means = torch.nn.Parameter(torch.zeros(self.in_features,self.out_features))
-            self.beta = torch.nn.Parameter(torch.ones(self.out_features))
+            step = torch.stack([torch.tensor((self.range[i][1] - self.range[i][0]) / self.out_features) for i in range(len(self.range))])
+            for i in range(self.out_features):
+                for j in range(self.in_features):
+                    means[j,i] = self.range[j][0] + i * step[j]
+
+
+            max_step = step.amax()
+
+            self.means = torch.nn.Parameter(means)
+            self.beta = torch.nn.Parameter(torch.ones(self.out_features) * max_step * 2)
             self.alpha = torch.nn.Parameter(torch.ones(self.out_features))
-            #self.stds = torch.nn.Parameter(torch.ones(self.in_features,self.out_features))
-            #self.focus = torch.nn.Parameter(torch.nn.init.xavier_uniform(torch.ones(self.in_features,self.out_features)))
-
 
     def forward(self,x):
         if self.univariate:
@@ -68,10 +74,6 @@ class RBFLayer(torch.nn.Module):
             x = x.unsqueeze(-1).repeat(1,1,self.out_features) ### spread the input over the output dimension
             x = (x - self.means[None,:,:]).norm(dim=1)
             x = x * self.beta[None,:]
-            
-            
-            #x = x * self.focus[None,:,:] #torch.div(x,self.stds[None,:,:])
-            #x = (x - self.means[None,:,:]).norm(dim=1)
             
             x = torch.exp(-0.5 * x ** 2)
             x = x * self.alpha[None,:]

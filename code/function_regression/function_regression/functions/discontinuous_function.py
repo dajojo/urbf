@@ -41,21 +41,35 @@ class DiscontinuousFunction(BaseFunction):
         value = 0
 
         means = np.array(self.config.means)
-        height = np.array(self.config.coef)
-        depth = np.array(self.config.stds)
+        seeds = np.array(self.config.stds)  # Used as seeds
         peak_distr_ranges = np.array(self.config.peak_distr_ranges)
 
-        for step in range(len(means)):
+        for step, seed in enumerate(seeds):
+            np.random.seed(int(seed*1000))  # Set the seed for reproducibility
+
             mean = means[step]
-            range_scale = np.array([(peak_distr_ranges[dim][1] - peak_distr_ranges[dim][0])/2 for dim in range(input.shape[0])])
-            scaled_depth = depth[step] * range_scale
+            range_scale = np.array([(peak_distr_ranges[dim][1] - peak_distr_ranges[dim][0]) / 2 for dim in range(input.shape[0])])
 
-            # Calculate the Euclidean distance from the mean
-            distance = np.linalg.norm(input - mean)
+            # Generate random radii and rotation angle
+            radius = np.random.rand(input.shape[0]) * range_scale
+            rotation_angle = np.random.rand() * 2 * np.pi  # Rotation angle between 0 and 2π
 
-            # Check if the distance is within the scaled depth
-            if distance < np.linalg.norm(scaled_depth):
-                value += height[step][0]
+            # Create rotation matrix for 2D (extend this for higher dimensions if needed)
+            cos_angle, sin_angle = np.cos(rotation_angle), np.sin(rotation_angle)
+            rotation_matrix = np.array([[cos_angle, -sin_angle], [sin_angle, cos_angle]])
+
+            # Rotate the input and mean
+            rotated_input = rotation_matrix.dot(input - mean)
+            rotated_radius = rotation_matrix.dot(radius)
+
+            # Adjusted distance calculation for a rotated ellipse
+            scaled_input = rotated_input / rotated_radius
+            distance_squared = np.sum(scaled_input ** 2)
+
+            # Check if the point lies within the rotated ellipse
+            if distance_squared < 1:
+                height = np.random.rand()  # You can also randomize height if needed
+                value += height
 
         return value
 

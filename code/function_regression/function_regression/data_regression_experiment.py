@@ -79,8 +79,8 @@ def run_data_experiments(config=None, **kwargs):
         dataset = eu.misc.create_object_from_config(_config.dataset)
         sample_points, sample_values = dataset.generate_samples()
 
-        if sample_points.shape[-1] > 10:
-            print(f"Skipping {dataset_name} because it has more than 10 dimensions")
+        if sample_points.shape[-1] > 5:
+            print(f"Skipping {dataset_name} because it has more than 5 dimensions")
             continue
 
         print(sample_points.shape)
@@ -108,7 +108,7 @@ def run_data_experiments(config=None, **kwargs):
         summary_logger.add_object("dataset",dataset_name)
         #summary_logger.add_object("model",model)
 
-        if isinstance(model,torch.nn.Module):
+        if isinstance(model, torch.nn.Module):
             params = sum(p.numel() for p in model.parameters() if p.requires_grad)
             summary_logger.add_value("params",params)
 
