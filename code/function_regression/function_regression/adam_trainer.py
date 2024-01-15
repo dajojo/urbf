@@ -153,6 +153,7 @@ class AdamTrainer:
                     # Compute the loss
                     if self.config.is_classification and len(outputs.shape) > 1:
                         labels = labels.squeeze().long()
+                    
                     loss = criterion(outputs, labels.to(device))
                     # Accumulate the running loss
                     running_val_loss += loss.item()
