@@ -73,9 +73,8 @@ class RBFLayer(torch.nn.Module):
         else:
             x = x.unsqueeze(-1).repeat(1,1,self.out_features) ### spread the input over the output dimension
             x = (x - self.means[None,:,:]).norm(dim=1)
-            x = x * self.beta[None,:]
             
-            x = torch.exp(-0.5 * x ** 2)
+            x = torch.exp(-0.5 * self.beta[None,:] * x ** 2)
             x = x * self.alpha[None,:]
 
         return x
