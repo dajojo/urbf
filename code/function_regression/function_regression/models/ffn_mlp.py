@@ -21,6 +21,7 @@ class FFNMLP(torch.nn.Module):
         def_config.range = (-5,5)
         def_config.use_sigmoid = False
         def_config.scale = 10
+        def_config.univariate = False
         return def_config
 
     def __init__(self, config=None, **kwargs):
@@ -33,9 +34,9 @@ class FFNMLP(torch.nn.Module):
 
         self.layers = []
    
-        first_hidden_features = int(self.config.hidden_features[0] // self.config.in_features)
+        mapping_size = int(self.config.hidden_features[0] // 2)
 
-        self.layers.append(FFNLayer(in_features=self.config.in_features,mapping_size=first_hidden_features,scale=self.config.scale))
+        self.layers.append(FFNLayer(in_features=self.config.in_features,mapping_size=mapping_size,scale=self.config.scale,univariate=self.config.univariate))
 
         if self.config.scale == None:
             self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
@@ -72,7 +73,7 @@ class FFNMLP(torch.nn.Module):
 
 class FFNLayer(torch.nn.Module):
         
-    def __init__(self,in_features,mapping_size,scale=None) -> None:
+    def __init__(self,in_features,mapping_size,scale=None,univariate=False) -> None:
         super().__init__()
         self.in_features = in_features
         self.mapping_size = mapping_size
@@ -81,9 +82,15 @@ class FFNLayer(torch.nn.Module):
         if scale != None:
             B_gauss = np.random.normal(size=(mapping_size, in_features))
             self.B = torch.from_numpy(B_gauss * scale).float()
-            print(f"B: {self.B.shape}")
-        else:
-            print("no scale provided")
+
+            if univariate:
+                ### additionally use a uniform distribution to decide which dimension to use
+                self.univariate_mapping = torch.zeros((mapping_size,in_features))
+                for i in range(mapping_size):
+                    self.univariate_mapping[i,np.random.randint(0,in_features)] = 1.0
+
+                self.B = self.B * self.univariate_mapping
+
 
     def forward(self,x):
         return self.input_mapping(x)
@@ -92,16 +99,11 @@ class FFNLayer(torch.nn.Module):
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x).float()
 
-        if self.B is None:
-            in_channels = self.in_features
-        else:
+        if self.B is not None:
             x_proj = ((2. * (np.pi) * x) @ self.B.T)
             if isinstance(x_proj, np.ndarray):
                 x_proj = torch.from_numpy(x_proj)
 
             x = torch.cat([torch.sin(x_proj), torch.cos(x_proj)], dim=-1).float()
-        
-            in_channels = self.in_features * self.mapping_size
-
-
+    
         return x

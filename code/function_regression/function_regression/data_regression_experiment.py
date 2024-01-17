@@ -1,3 +1,4 @@
+from math import sqrt
 from function_regression.function_sample_dataset import FunctionSampleDataset
 from function_regression.datasets.pmlb_dataset import PMLBDataset
 from function_regression.datasets.uciml_dataset import UCIMLDataset
@@ -83,7 +84,6 @@ def run_data_experiments(config=None, **kwargs):
             print(f"Skipping {dataset_name} because it has more than 5 dimensions")
             continue
 
-        print(sample_points.shape)
 
         min_vals = np.min(sample_points,axis=0)
         max_vals = np.max(sample_points,axis=0)
@@ -163,6 +163,7 @@ def run_data_experiment(config=None,logger=None, **kwargs):
         seed = 123,
         test_split_size = 0.2,
         val_split_size = 0.2,
+        use_equal_sampling = False,
         log_to_tensorboard = True,
     )
 
@@ -190,12 +191,34 @@ def run_data_experiment(config=None,logger=None, **kwargs):
     trainer = eu.misc.create_object_from_config(config.trainer)
     model = eu.misc.create_object_from_config(config.model)
     
+    if config.use_equal_sampling:
 
-    # Split the dataset into training (60%), validation (20%), and test (20%)
-    train_points, test_points, train_values, test_values = train_test_split(sample_points, sample_values, test_size=config.test_split_size, random_state=config.seed)
+        res = int(sqrt(sample_values.shape[0]))
+        sample_values = np.reshape(sample_values,(res,res,3))
+        sample_points = np.reshape(sample_points,(res,res,2))
 
-    # Further split the training set into training and validation sets
-    train_points, val_points, train_values, val_values = train_test_split(train_points, train_values, test_size= config.val_split_size / (1 - config.test_split_size) , random_state=config.seed)
+        train_values = sample_values[::2,::2,:]
+        train_points = sample_points[::2,::2,:]
+
+        train_values = train_values.reshape(-1,3)
+        train_points = train_points.reshape(-1,2)
+
+        test_values = sample_values[1::2,1::2,:]
+        test_points = sample_points[1::2,1::2,:]
+
+        test_values = test_values.reshape(-1,3)
+        test_points = test_points.reshape(-1,2)
+
+        val_values = sample_values[::2,1::2,:]
+        val_points = sample_points[::2,1::2,:]
+
+        val_values = val_values.reshape(-1,3)
+        val_points = val_points.reshape(-1,2)
+    else:
+        # Split the dataset into training (60%), validation (20%), and test (20%)
+        train_points, test_points, train_values, test_values = train_test_split(sample_points, sample_values, test_size=config.test_split_size, random_state=config.seed)
+        # Further split the training set into training and validation sets
+        train_points, val_points, train_values, val_values = train_test_split(train_points, train_values, test_size= config.val_split_size / (1 - config.test_split_size) , random_state=config.seed)
 
     train_dataset = FunctionSampleDataset(train_points, train_values)
     val_dataset = FunctionSampleDataset(val_points, val_values)

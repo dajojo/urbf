@@ -94,22 +94,16 @@ class AdamTrainer:
             
             if hasattr(model.layers[0],'rbf_layer'):
                 means = model.layers[0].rbf_layer.state_dict()["means"].cpu().detach().numpy()
-                #print(f"Updated mean: {means.shape}")
-
                 for idx,mean in enumerate(means):
                     logger.add_value(f"mean{idx}",mean)
 
                 stds = model.layers[0].rbf_layer.state_dict()["stds"].cpu().detach().numpy()
-                #print(f"Updated stds: {stds.shape}")
-
                 for idx,std in enumerate(stds):
                     logger.add_value(f"std{idx}",std)
                 
 
                 if hasattr(model.layers[0],'expansion_mapping'):
                     expansion_mapping = model.layers[0].expansion_mapping.cpu().detach().numpy()
-                    #print(f"Updated expansion_mapping: {expansion_mapping.shape}")
-
                     for idx,expansion_map in enumerate(expansion_mapping):
                         logger.add_value(f"expansion_map{idx}",expansion_map.argmax()+expansion_map.sum())
 
