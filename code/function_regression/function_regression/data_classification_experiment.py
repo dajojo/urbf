@@ -1,3 +1,5 @@
+from math import sqrt
+from function_regression.datasets.uciml_dataset import UCIMLDataset, uciml_dataset_names
 from function_regression.function_sample_dataset import FunctionSampleDataset
 from function_regression.datasets.pmlb_dataset import PMLBDataset
 from function_regression.models.urbf_mlp import URBFMLP
@@ -40,7 +42,14 @@ def run_data_classification_experiments(config=None, **kwargs):
     ### implement checkpoints
     ### implement logging for different datasets
 
-    datasets = classification_dataset_names
+    print(config.dataset.cls)
+
+    if config.dataset.cls is UCIMLDataset:
+        datasets = uciml_dataset_names
+    elif config.dataset.cls is PMLBDataset:
+        datasets = classification_dataset_names
+    else:
+        raise NotImplementedError
 
     log_config = eu.AttrDict(
         directory = eu.DEFAULT_DATA_DIRECTORY,
@@ -70,11 +79,10 @@ def run_data_classification_experiments(config=None, **kwargs):
         dataset = eu.misc.create_object_from_config(_config.dataset)
         sample_points, sample_values = dataset.generate_samples()
 
-        if sample_points.shape[-1] > 10:
-            print(f"Skipping {dataset_name} because it has more than 10 dimensions")
+        if sample_points.shape[-1] > 5:
+            print(f"Skipping {dataset_name} because it has more than 5 dimensions")
             continue
 
-        print(sample_points.shape)
 
         min_vals = np.min(sample_points,axis=0)
         max_vals = np.max(sample_points,axis=0)
@@ -82,17 +90,16 @@ def run_data_classification_experiments(config=None, **kwargs):
         if _config.model.in_features == None:
             _config.model.in_features = sample_points.shape[-1]
             print("Set in_features to ",_config.model.in_features)
-
         if _config.model.out_features == None:
             _config.model.out_features = len(np.unique(sample_values))
             print("Set out_features to ",_config.model.out_features)
 
 
-        if None in _config.model.ranges:
+        if None in _config.model.range:
             ### As a test we set the range to the global min and max 
-            _config.model.ranges = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
+            _config.model.range = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
             #_config.model.ranges = list(zip(min_vals,max_vals))
-            print("Set ranges to ",_config.model.ranges)
+            print("Set ranges to ",_config.model.range)
 
 
         if len(_config.model.hidden_features) > 0:
@@ -104,7 +111,7 @@ def run_data_classification_experiments(config=None, **kwargs):
         summary_logger.add_object("dataset",dataset_name)
         #summary_logger.add_object("model",model)
 
-        if isinstance(model,torch.nn.Module):
+        if isinstance(model, torch.nn.Module):
             params = sum(p.numel() for p in model.parameters() if p.requires_grad)
             summary_logger.add_value("params",params)
 
@@ -126,9 +133,6 @@ def run_data_classification_experiments(config=None, **kwargs):
         summary_logger.save()
 
 
-        
-
-
 def run_data_classification_experiment(config=None,logger=None, **kwargs):
 
     if logger == None:
@@ -142,7 +146,7 @@ def run_data_classification_experiment(config=None,logger=None, **kwargs):
         model = eu.AttrDict(cls=URBFMLP,            
             in_features=2,
             use_urbf=False,
-            ranges=(-10,5),   
+            range=(-10,5),   
             use_split_merge=False,
             split_merge_temperature=0.1,     
             use_back_tray=False,
@@ -155,10 +159,11 @@ def run_data_classification_experiment(config=None,logger=None, **kwargs):
             urbf_learning_rate=1,
             n_epochs=1000,
             batch_size=64,
-            is_classification=True,),
+            is_classification=True),
         seed = 123,
         test_split_size = 0.2,
         val_split_size = 0.2,
+        use_equal_sampling = False,
         log_to_tensorboard = True,
     )
 
@@ -179,19 +184,41 @@ def run_data_classification_experiment(config=None,logger=None, **kwargs):
     min_vals = np.min(sample_points,axis=0)
     max_vals = np.max(sample_points,axis=0)
 
-    if None in config.model.ranges:
+    if None in config.model.range:
         ### As a test we set the range to the global min and max 
-        config.model.ranges = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
+        config.model.range = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
 
     trainer = eu.misc.create_object_from_config(config.trainer)
     model = eu.misc.create_object_from_config(config.model)
     
+    if config.use_equal_sampling:
 
-    # Split the dataset into training (60%), validation (20%), and test (20%)
-    train_points, test_points, train_values, test_values = train_test_split(sample_points, sample_values, test_size=config.test_split_size, random_state=config.seed)
+        res = int(sqrt(sample_values.shape[0]))
+        sample_values = np.reshape(sample_values,(res,res,3))
+        sample_points = np.reshape(sample_points,(res,res,2))
 
-    # Further split the training set into training and validation sets
-    train_points, val_points, train_values, val_values = train_test_split(train_points, train_values, test_size= config.val_split_size / (1 - config.test_split_size) , random_state=config.seed)
+        train_values = sample_values[::2,::2,:]
+        train_points = sample_points[::2,::2,:]
+
+        train_values = train_values.reshape(-1,3)
+        train_points = train_points.reshape(-1,2)
+
+        test_values = sample_values[1::2,1::2,:]
+        test_points = sample_points[1::2,1::2,:]
+
+        test_values = test_values.reshape(-1,3)
+        test_points = test_points.reshape(-1,2)
+
+        val_values = sample_values[::2,1::2,:]
+        val_points = sample_points[::2,1::2,:]
+
+        val_values = val_values.reshape(-1,3)
+        val_points = val_points.reshape(-1,2)
+    else:
+        # Split the dataset into training (60%), validation (20%), and test (20%)
+        train_points, test_points, train_values, test_values = train_test_split(sample_points, sample_values, test_size=config.test_split_size, random_state=config.seed)
+        # Further split the training set into training and validation sets
+        train_points, val_points, train_values, val_values = train_test_split(train_points, train_values, test_size= config.val_split_size / (1 - config.test_split_size) , random_state=config.seed)
 
     train_dataset = FunctionSampleDataset(train_points, train_values)
     val_dataset = FunctionSampleDataset(val_points, val_values)

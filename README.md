@@ -1,5 +1,11 @@
 # Univariate Radial Basis Function (URBF)
 
+### Ideas:
+- Look into the idea of using different (fixed) directions and stds by sampling from a gaussian distribution such as in FFN
+- But here we will need an Algorithm to prune unused variables while growing necessary variables
+  - Reintroduce the significance measure as the product of weight and rbf output
+  - sample again new neurons and repeat
+
 
 
 ### Regression examples:

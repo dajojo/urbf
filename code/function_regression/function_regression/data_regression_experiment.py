@@ -74,7 +74,6 @@ def run_data_experiments(config=None, **kwargs):
         )
         logger = log.Logger(log_config)
 
-
         _config.dataset.name = dataset_name
 
         dataset = eu.misc.create_object_from_config(_config.dataset)
@@ -95,8 +94,6 @@ def run_data_experiments(config=None, **kwargs):
         if None in _config.model.range:
             ### As a test we set the range to the global min and max 
             _config.model.range = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
-            #_config.model.ranges = list(zip(min_vals,max_vals))
-            print("Set ranges to ",_config.model.range)
 
 
         if len(_config.model.hidden_features) > 0:
@@ -106,7 +103,6 @@ def run_data_experiments(config=None, **kwargs):
         model = run_data_experiment(config=_config,logger=logger, **kwargs)
 
         summary_logger.add_object("dataset",dataset_name)
-        #summary_logger.add_object("model",model)
 
         if isinstance(model, torch.nn.Module):
             params = sum(p.numel() for p in model.parameters() if p.requires_grad)

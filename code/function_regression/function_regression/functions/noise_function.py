@@ -14,7 +14,7 @@ class WhiteNoiseFunction(BaseFunction):
         def_config = eu.AttrDict()
         def_config.in_features = 2  # Update this for n-dimensional support
         def_config.ranges = [(-5, 5)] 
-        def_config.peak_distr_ranges = [(-5, 5)] 
+        def_config.peak_distr_ranges = [(0, 1)] 
         def_config.difficulty = 2
         def_config.coef = np.array([[5]] )
         def_config.sample_rates = [5]
@@ -82,7 +82,15 @@ class WhiteNoiseFunction(BaseFunction):
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         input = args[0]
+
+        input_point = np.array(input)
+        in_range = ([self.config.peak_distr_ranges[i][0] <= input_point[i] <= self.config.peak_distr_ranges[i][1] for i in range(self.config.in_features)])
+
+        if not all(in_range):
+            return 0
+        
         indices = [int(input[i] * self.config.sample_rates[i]) for i in range(self.config.in_features)]
+
         return self.noise[tuple(indices)]
 
 

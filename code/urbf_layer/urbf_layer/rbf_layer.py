@@ -10,7 +10,8 @@ class RBFLayer(torch.nn.Module):
                 in_features:int,
                 out_features:int,
                 data_range:List[Tuple[int]],
-                univariate:bool = False):
+                univariate:bool = False,
+                dynamic:bool = False):
         
         super().__init__()
         
@@ -65,6 +66,14 @@ class RBFLayer(torch.nn.Module):
             self.means = torch.nn.Parameter(means)
             self.beta = torch.nn.Parameter(torch.ones(self.out_features) * max_step * 2)
             self.alpha = torch.nn.Parameter(torch.ones(self.out_features))
+
+        if dynamic:
+            self.linear_layer_grad_output = None
+
+    def liner_backward_hook(self,module, grad_input, grad_output):
+        print(f"linear backward hook grad_output: {grad_output[0].shape}")
+        self.linear_layer_grad_output = grad_output[0]
+
 
     def forward(self,x):
         if self.univariate:
