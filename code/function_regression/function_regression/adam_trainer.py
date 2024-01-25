@@ -71,7 +71,6 @@ class AdamTrainer:
 
         if self.config.is_classification:
             criterion = torch.nn.CrossEntropyLoss()
-            print("picked cross entropy loss!!")
         else:
             criterion = torch.nn.MSELoss()
 
@@ -117,14 +116,6 @@ class AdamTrainer:
 
                 if self.config.is_classification and len(outputs.shape) > 1:
                     labels = labels.squeeze().long()
-                
-
-                print(outputs.shape)
-                print(labels.shape)
-
-                print(outputs)
-                print(labels)
-
                 # Compute the loss
                 loss = criterion(outputs, labels.to(device))
 

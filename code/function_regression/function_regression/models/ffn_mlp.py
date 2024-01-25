@@ -22,6 +22,8 @@ class FFNMLP(torch.nn.Module):
         def_config.use_sigmoid = False
         def_config.scale = 10
         def_config.univariate = False
+        def_config.learnable = False,
+        def_config.initial_distribution = "random",
         return def_config
 
     def __init__(self, config=None, **kwargs):
@@ -73,7 +75,7 @@ class FFNMLP(torch.nn.Module):
 
 class FFNLayer(torch.nn.Module):
         
-    def __init__(self,in_features,mapping_size,scale=None,univariate=False) -> None:
+    def __init__(self,in_features,mapping_size,scale=None,univariate=False,learnable=False,initial_distribution="random") -> None:
         super().__init__()
         self.in_features = in_features
         self.mapping_size = mapping_size
@@ -91,6 +93,15 @@ class FFNLayer(torch.nn.Module):
 
                 self.B = self.B * self.univariate_mapping
 
+                if initial_distribution == "uniform":
+                    dim_features = mapping_size//in_features
+
+                    for i in range(in_features):
+                        for f in range(dim_features):
+                            self.B[i*dim_features + f,i] = 2**(f-1)
+
+            if learnable:
+                self.B = nn.Parameter(self.B)
 
     def forward(self,x):
         return self.input_mapping(x)

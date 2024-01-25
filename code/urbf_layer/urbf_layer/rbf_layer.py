@@ -11,6 +11,8 @@ class RBFLayer(torch.nn.Module):
                 out_features:int,
                 data_range:List[Tuple[int]],
                 univariate:bool = False,
+                learnable:bool = True,
+                initial_distribution = "uniform",
                 dynamic:bool = False):
         
         super().__init__()
@@ -21,9 +23,8 @@ class RBFLayer(torch.nn.Module):
         self.out_features = out_features
         self.range = data_range
 
-        
         if univariate:
-            self.expansion_mapping = torch.zeros((out_features,in_features))#nn.Linear(in_features,out_features,bias=False)
+            self.expansion_mapping = torch.zeros((out_features,in_features))
 
             out_features_per_dim = self.out_features // self.in_features
 
@@ -37,17 +38,33 @@ class RBFLayer(torch.nn.Module):
             means = (torch.zeros(self.out_features))
             stds = (torch.ones(self.out_features))
 
-            for dim, dim_range in enumerate(self.range):
-                dim_min,dim_max = dim_range
-                abs_range = dim_max - dim_min
-                left_features = out_features_per_dim
+            if initial_distribution == "uniform":
+                for dim, dim_range in enumerate(self.range):
+                    dim_min,dim_max = dim_range
+                    abs_range = dim_max - dim_min
+                    left_features = out_features_per_dim
 
-                step = abs_range / (left_features)
+                    step = abs_range / (left_features)
 
-                for neuron in range(left_features):
+                    for neuron in range(left_features):
 
-                    means[(dim)*out_features_per_dim + neuron] = dim_min + step*(neuron) + step/2
-                    stds[(dim)*out_features_per_dim + neuron] = step*2
+                        means[(dim)*out_features_per_dim + neuron] = dim_min + step*(neuron) + step/2
+                        stds[(dim)*out_features_per_dim + neuron] = step*2
+            
+            elif initial_distribution == "random":
+
+                for dim, dim_range in enumerate(self.range):
+                    dim_min,dim_max = dim_range
+                    abs_range = dim_max - dim_min
+                    left_features = out_features_per_dim
+
+                    step = abs_range / (left_features)
+
+                    for neuron in range(left_features):
+                        means[neuron] = torch.rand(1) * (abs_range) + dim_min
+                        stds[neuron] = torch.rand(1) * (step) + step
+
+
 
             self.means = torch.nn.Parameter(means)
             self.stds = torch.nn.Parameter(stds)
@@ -55,20 +72,34 @@ class RBFLayer(torch.nn.Module):
         else:
             means = torch.zeros(self.in_features, self.out_features)
 
-            step = torch.stack([torch.tensor((self.range[i][1] - self.range[i][0]) / self.out_features) for i in range(len(self.range))])
-            for i in range(self.out_features):
-                for j in range(self.in_features):
-                    means[j,i] = self.range[j][0] + i * step[j]
+            if initial_distribution == "uniform":
+                step = torch.stack([torch.tensor((self.range[i][1] - self.range[i][0]) / self.out_features) for i in range(len(self.range))])
+                for i in range(self.out_features):
+                    for j in range(self.in_features):
+                        means[j,i] = self.range[j][0] + i * step[j]
 
+                max_step = step.amax()
 
-            max_step = step.amax()
+                self.means = torch.nn.Parameter(means)
+                self.beta = torch.nn.Parameter(torch.ones(self.out_features)* (1 / ( max_step * 2)) ** 2)
 
-            self.means = torch.nn.Parameter(means)
-            self.beta = torch.nn.Parameter(torch.ones(self.out_features) * max_step * 2)
-            self.alpha = torch.nn.Parameter(torch.ones(self.out_features))
+            elif initial_distribution == "random":
+                for i in range(self.out_features):
+                    for j in range(self.in_features):
+                        means[j,i] = torch.rand(1) * (self.range[j][1] - self.range[j][0]) + self.range[j][0]
+
+                self.means = torch.nn.Parameter(means)
+                self.beta = torch.nn.Parameter(torch.ones(self.out_features)* (1 / ( max_step * (torch.rand(1) * 2 + 1))) ** 2)
 
         if dynamic:
             self.linear_layer_grad_output = None
+
+
+        if not learnable:
+            self.means.requires_grad_(False)
+            self.stds.requires_grad_(False)
+            if not univariate:
+                self.beta.requires_grad_(False)
 
     def liner_backward_hook(self,module, grad_input, grad_output):
         print(f"linear backward hook grad_output: {grad_output[0].shape}")
