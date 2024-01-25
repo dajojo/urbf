@@ -20,8 +20,8 @@ class RBFMLP(torch.nn.Module):
         def_config.range = (-5,5)
         def_config.use_rbf = True
         def_config.univariate = True
-        def_config.learnable = True,
-        def_config.initial_distribution = "uniform",
+        def_config.learnable = True
+        def_config.initial_distribution = "uniform"
         
         return def_config
 

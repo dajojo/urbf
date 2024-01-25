@@ -17,8 +17,8 @@ config = eu.AttrDict(
         hidden_features=<hidden_features>,
         range=<model_range>,
         scale=<scale>,
-        learnable = <learnable>,
         initial_distribution=<initial_distribution>,
+        learnable=<learnable>,
         ),
 
     function = eu.AttrDict(

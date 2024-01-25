@@ -22,8 +22,8 @@ class FFNMLP(torch.nn.Module):
         def_config.use_sigmoid = False
         def_config.scale = 10
         def_config.univariate = False
-        def_config.learnable = False,
-        def_config.initial_distribution = "random",
+        def_config.learnable = False
+        def_config.initial_distribution = "random"
         return def_config
 
     def __init__(self, config=None, **kwargs):

@@ -64,7 +64,8 @@ class RBFLayer(torch.nn.Module):
                         means[neuron] = torch.rand(1) * (abs_range) + dim_min
                         stds[neuron] = torch.rand(1) * (step) + step
 
-
+            else:
+                raise ValueError(f"initial_distribution must be either uniform or random not {initial_distribution}")
 
             self.means = torch.nn.Parameter(means)
             self.stds = torch.nn.Parameter(stds)
@@ -84,12 +85,18 @@ class RBFLayer(torch.nn.Module):
                 self.beta = torch.nn.Parameter(torch.ones(self.out_features)* (1 / ( max_step * 2)) ** 2)
 
             elif initial_distribution == "random":
+                abs_range = torch.stack([torch.tensor((self.range[i][1] - self.range[i][0])) for i in range(len(self.range))])
+                max_range = abs_range.amax()
                 for i in range(self.out_features):
                     for j in range(self.in_features):
                         means[j,i] = torch.rand(1) * (self.range[j][1] - self.range[j][0]) + self.range[j][0]
 
                 self.means = torch.nn.Parameter(means)
-                self.beta = torch.nn.Parameter(torch.ones(self.out_features)* (1 / ( max_step * (torch.rand(1) * 2 + 1))) ** 2)
+                self.beta = torch.nn.Parameter(torch.ones(self.out_features)* (1 / ( max_range * (torch.rand(1) * 2 + 1))) ** 2)
+
+            else:
+                raise ValueError(f"initial_distribution must be either uniform or random not {initial_distribution}")
+
 
         if dynamic:
             self.linear_layer_grad_output = None
@@ -97,8 +104,9 @@ class RBFLayer(torch.nn.Module):
 
         if not learnable:
             self.means.requires_grad_(False)
-            self.stds.requires_grad_(False)
-            if not univariate:
+            if univariate:
+                self.stds.requires_grad_(False)
+            else:
                 self.beta.requires_grad_(False)
 
     def liner_backward_hook(self,module, grad_input, grad_output):

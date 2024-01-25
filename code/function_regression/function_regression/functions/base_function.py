@@ -118,5 +118,54 @@ class BaseFunction():
 
         fig.show()
 
+    def plot_matplt(self,title="",showcolorbar=True):
+        points, values = self.generate_samples()
+        print(points.shape)
 
-                    
+        num_dimensions = points.shape[-1]
+
+        assert num_dimensions <= 3, "Can only plot functions for dim <= 3"
+
+        assert num_dimensions <= 3, "Can only plot functions for dim <= 3"
+
+        if num_dimensions == 1:
+            plt.scatter(points[:, 0], values[:, 0], c=values[:, 0], cmap='viridis', s=2)
+            plt.colorbar(label='Value')
+            plt.title("1D Scatter Plot")
+            plt.xlabel("X")
+            plt.ylabel("Value")
+            plt.show()
+
+        elif num_dimensions == 2:
+            # Create grid for surface plot
+            x_min, x_max = np.min(points[:, 0]), np.max(points[:, 0])
+            y_min, y_max = np.min(points[:, 1]), np.max(points[:, 1])
+            xx, yy = np.meshgrid(np.linspace(x_min, x_max, 100), np.linspace(y_min, y_max, 100))
+            
+            # Interpolate values for the grid
+            from scipy.interpolate import griddata
+            zz = griddata(points, values[:, 0], (xx, yy), method='cubic')
+
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            surf = ax.plot_surface(xx, yy, zz, cmap='viridis', edgecolor='none')
+            
+            if showcolorbar:
+                fig.colorbar(surf, ax=ax, label='Value')
+        
+            ax.set_title(title)
+            ax.set_xlabel("x1")
+            ax.set_ylabel("x2")
+            ax.set_zlabel("y")
+            plt.show()
+
+        else:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            img = ax.scatter(points[:, 0], points[:, 1], points[:, 2], c=values[:, 0], cmap='viridis', s=2)
+            fig.colorbar(img, ax=ax, label='Value')
+            ax.set_title("3D Scatter Plot")
+            ax.set_xlabel("X")
+            ax.set_ylabel("Y")
+            ax.set_zlabel("Z")
+            plt.show()
