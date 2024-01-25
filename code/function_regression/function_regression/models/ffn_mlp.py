@@ -91,14 +91,21 @@ class FFNLayer(torch.nn.Module):
                 for i in range(mapping_size):
                     self.univariate_mapping[i,np.random.randint(0,in_features)] = 1.0
 
-                self.B = self.B * self.univariate_mapping
-
                 if initial_distribution == "uniform":
+                    print("Using uniform distribution as initial distribution")
                     dim_features = mapping_size//in_features
 
                     for i in range(in_features):
                         for f in range(dim_features):
                             self.B[i*dim_features + f,i] = 2**(f-1)
+
+
+                self.B = self.B * self.univariate_mapping
+            # else:
+            #     if initial_distribution == "uniform":
+            #         self.B = self.B * self.univariate_mapping
+
+
 
             if learnable:
                 self.B = nn.Parameter(self.B)
