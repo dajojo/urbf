@@ -37,7 +37,7 @@ class RBFMLP(torch.nn.Module):
         self.layers = []
 
         if self.config.use_rbf:
-            self.layers.append(RBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0],data_range=self.config.range,univariate=self.config.univariate))
+            self.layers.append(RBFLayer(in_features=self.config.in_features,out_features=self.config.hidden_features[0],data_range=self.config.range,univariate=self.config.univariate, learnable=self.config.learnable,initial_distribution=self.config.initial_distribution))
         else:
             self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
             self.layers.append(torch.nn.ReLU())

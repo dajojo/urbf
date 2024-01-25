@@ -38,7 +38,7 @@ class FFNMLP(torch.nn.Module):
    
         mapping_size = int(self.config.hidden_features[0] // 2)
 
-        self.layers.append(FFNLayer(in_features=self.config.in_features,mapping_size=mapping_size,scale=self.config.scale,univariate=self.config.univariate))
+        self.layers.append(FFNLayer(in_features=self.config.in_features,mapping_size=mapping_size,scale=self.config.scale,univariate=self.config.univariate, learnable=self.config.learnable,initial_distribution=self.config.initial_distribution ))
 
         if self.config.scale == None:
             self.layers.append(torch.nn.Linear(in_features=self.config.in_features,out_features=self.config.hidden_features[0]))
