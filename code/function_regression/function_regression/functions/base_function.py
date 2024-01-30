@@ -118,7 +118,7 @@ class BaseFunction():
 
         fig.show()
 
-    def plot_matplt(self,title="",showcolorbar=True):
+    def plot_matplt(self,title=None,showcolorbar=True,save_as=None):
         points, values = self.generate_samples()
         print(points.shape)
 
@@ -131,9 +131,13 @@ class BaseFunction():
         if num_dimensions == 1:
             plt.scatter(points[:, 0], values[:, 0], c=values[:, 0], cmap='viridis', s=2)
             plt.colorbar(label='Value')
-            plt.title("1D Scatter Plot")
+            if title is not None:
+                ax.set_title(title)
             plt.xlabel("X")
             plt.ylabel("Value")
+
+            if save_as is not None:
+                plt.savefig(save_as, format="pdf", bbox_inches='tight')
             plt.show()
 
         elif num_dimensions == 2:
@@ -152,20 +156,29 @@ class BaseFunction():
             
             if showcolorbar:
                 fig.colorbar(surf, ax=ax, label='Value')
-        
-            ax.set_title(title)
+
+            if title is not None:
+                ax.set_title(title)
             ax.set_xlabel("x1")
             ax.set_ylabel("x2")
             ax.set_zlabel("y")
-            plt.show()
 
+            if save_as is not None:
+                plt.savefig(save_as, format="pdf", bbox_inches='tight')
+
+            plt.show()
         else:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
             img = ax.scatter(points[:, 0], points[:, 1], points[:, 2], c=values[:, 0], cmap='viridis', s=2)
             fig.colorbar(img, ax=ax, label='Value')
-            ax.set_title("3D Scatter Plot")
+            if title is not None:
+                ax.set_title(title)
             ax.set_xlabel("X")
             ax.set_ylabel("Y")
             ax.set_zlabel("Z")
+
+            if save_as is not None:
+                plt.savefig(save_as, format="pdf", bbox_inches='tight')
+
             plt.show()

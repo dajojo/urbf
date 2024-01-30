@@ -30,10 +30,10 @@ class WhiteNoiseFunction(BaseFunction):
         
         assert all([noise.shape[0] == noise.shape[i] for i in range(len(noise.shape))]), "Noise shape is not equal in all dimensions"
         assert len(sample_rates) == len(dimensions), "Sample rates and dimensions are not equal"
-        assert all([sample_rates[0] == sample_rate for sample_rate in sample_rates]), "Sample rates are not equal to zero"
+        assert all([sample_rates[0] == sample_rate for sample_rate in sample_rates]), "Sample rates are not equal"
         
 
-        cutoff_frequency_hz = cutoff_frequency_hz* (noise.shape[0]/sample_rates[0]**2) ##### Sample rate and shape has to be the same
+        cutoff_frequency_hz = cutoff_frequency_hz* (noise.shape[0]/sample_rates[0]**2) ##### Sample rate and shape has to be the same TODO check if this is correct and clear this up!
 
         # Fourier transform to frequency domain
         noise_fft = np.fft.fftn(noise)

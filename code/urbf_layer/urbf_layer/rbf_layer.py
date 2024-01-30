@@ -71,15 +71,34 @@ class RBFLayer(torch.nn.Module):
             self.stds = torch.nn.Parameter(stds)
 
         else:
-            means = torch.zeros(self.in_features, self.out_features)
+            means = torch.rand(self.in_features, self.out_features)
 
-            if initial_distribution == "uniform":
-                step = torch.stack([torch.tensor((self.range[i][1] - self.range[i][0]) / self.out_features) for i in range(len(self.range))])
-                for i in range(self.out_features):
-                    for j in range(self.in_features):
-                        means[j,i] = self.range[j][0] + i * step[j]
+            out_features_per_dim = int(self.out_features ** (1/self.in_features))
 
-                max_step = step.amax()
+            if initial_distribution == "uniform":                
+                # Initialize a list to store the range for each dimension
+                dimension_ranges = []
+
+                max_step = 0
+
+                for i in range(in_features):
+                    # Calculate the step for each dimension
+                    step = (self.range[i][1] - self.range[i][0]) / out_features_per_dim
+
+                    if step > max_step:
+                        max_step = step
+
+                    # Create a range of values for this dimension
+                    dim_range = torch.linspace(self.range[i][0], self.range[i][1], out_features_per_dim)
+                    dimension_ranges.append(dim_range)
+
+                # Use meshgrid to create the grid for all dimensions
+                grid = torch.meshgrid(*dimension_ranges, indexing='ij')
+
+                # Reshape and store the grid points as means
+                _means = torch.stack([g.flatten() for g in grid], dim=1).T
+
+                means[:,:_means.shape[-1]]= _means
 
                 self.means = torch.nn.Parameter(means)
                 self.beta = torch.nn.Parameter(torch.ones(self.out_features)* (1 / ( max_step * 2)) ** 2)
@@ -87,12 +106,13 @@ class RBFLayer(torch.nn.Module):
             elif initial_distribution == "random":
                 abs_range = torch.stack([torch.tensor((self.range[i][1] - self.range[i][0])) for i in range(len(self.range))])
                 max_range = abs_range.amax()
+
                 for i in range(self.out_features):
                     for j in range(self.in_features):
                         means[j,i] = torch.rand(1) * (self.range[j][1] - self.range[j][0]) + self.range[j][0]
 
                 self.means = torch.nn.Parameter(means)
-                self.beta = torch.nn.Parameter(torch.ones(self.out_features)* (1 / ( max_range * (torch.rand(1) * 2 + 1))) ** 2)
+                self.beta = torch.nn.Parameter(torch.ones(self.out_features)* (1 / ( max_range * (torch.rand(1) * 3 + 1))) ** 2)
 
             else:
                 raise ValueError(f"initial_distribution must be either uniform or random not {initial_distribution}")
