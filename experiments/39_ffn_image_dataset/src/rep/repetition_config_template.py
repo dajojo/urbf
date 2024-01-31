@@ -9,6 +9,7 @@ config = eu.AttrDict(
     model = eu.AttrDict(
         cls=function_regression.models.<model>,
         in_features=<in_features>,
+        out_features=3,
         use_rbf=<use_rbf>,
         univariate=<univariate>,
         hidden_features=<hidden_features>,

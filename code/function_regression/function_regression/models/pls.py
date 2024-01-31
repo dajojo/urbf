@@ -32,4 +32,10 @@ class PLS:
 
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
-        return torch.tensor(self.regr.predict(*args)).unsqueeze(-1)
+        res = torch.tensor(self.regr.predict(*args))
+
+        if len(res.shape) == 1:
+            res = res.unsqueeze(-1)
+        
+        print(f"Call result: {res.shape}")
+        return res
