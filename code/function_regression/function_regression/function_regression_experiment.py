@@ -88,16 +88,21 @@ def run_experiment(config=None, **kwargs):
     # set random seeds with seed defined in the config
     eu.misc.seed(config)
 
+    difficulty = config.function.difficulty
+
+    if config.function.difficulty < 1:
+        difficulty = int(config.function.difficulty * 100)
+
     if "means" not in config.function:
-        config.function.means = sample_random_arrays(config.function.difficulty, config.function.peak_distr_ranges)
+        config.function.means = sample_random_arrays(difficulty, config.function.peak_distr_ranges)
         print(f"Randomly generated mean: {config.function.means} {config.function.peak_distr_ranges}")
 
     if "stds" not in config.function:
-        config.function.stds = np.squeeze(sample_random_arrays(config.function.difficulty,[(0.5,1)]), axis=1)
+        config.function.stds = np.squeeze(sample_random_arrays(difficulty,[(0.5,1)]), axis=1)
         print(f"Randomly generated stds: {config.function.stds}")
 
     if "coef" not in config.function:
-        config.function.coef = sample_random_arrays(config.function.difficulty, config.function.peak_distr_ranges)
+        config.function.coef = sample_random_arrays(difficulty, config.function.peak_distr_ranges)
         print(f"Randomly generated coef: {config.function.coef} {config.function.peak_distr_ranges}")
 
 
