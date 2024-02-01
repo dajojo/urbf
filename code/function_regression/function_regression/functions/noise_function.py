@@ -33,7 +33,7 @@ class WhiteNoiseFunction(BaseFunction):
         assert all([sample_rates[0] == sample_rate for sample_rate in sample_rates]), "Sample rates are not equal"
         
 
-        cutoff_frequency_hz = cutoff_frequency_hz* (noise.shape[0]/sample_rates[0]**2) ##### Sample rate and shape has to be the same TODO check if this is correct and clear this up!
+        cutoff_frequency_hz = cutoff_frequency_hz * (noise.shape[0]/sample_rates[0]**2) ##### Sample rate and shape has to be the same
 
         # Fourier transform to frequency domain
         noise_fft = np.fft.fftn(noise)
@@ -49,6 +49,7 @@ class WhiteNoiseFunction(BaseFunction):
             distance = sum(((center[dim] - indices[dim]) / sample_rates[dim])**2 for dim in range(len(dimensions)))
             mask[indices] = distance <= cutoff_frequency_hz**2
 
+        print(mask)
 
         # Apply the mask (filter)
         noise_fft_shifted *= mask
