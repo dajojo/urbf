@@ -79,7 +79,7 @@ def run_data_experiments(config=None, **kwargs):
         dataset = eu.misc.create_object_from_config(_config.dataset)
         sample_points, sample_values = dataset.generate_samples()
 
-        if sample_points.shape[-1] > 5:
+        if sample_points.shape[-1] > 10:
             print(f"Skipping {dataset_name} because it has more than 5 dimensions")
             continue
 
