@@ -9,7 +9,6 @@ from torch.utils.data import DataLoader
 import exputils as eu
 import exputils.data.logging as log
 import time
-import exputils.data.logging as log
 
 
 def sample_random_arrays(n: int, ranges: List[Tuple[float, float]]) -> np.ndarray:
