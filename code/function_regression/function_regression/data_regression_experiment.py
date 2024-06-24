@@ -174,15 +174,20 @@ def run_data_experiment(config=None,logger=None, **kwargs):
     dataset = eu.misc.create_object_from_config(config.dataset)
 
     sample_points, sample_values = dataset.generate_samples()
-    print(f"Sampled {sample_points.shape} {sample_values.shape}")
-    
+    print(f"Sampled -> points: {sample_points.shape} values: {sample_values.shape}")
+
+    config.model.in_features = sample_points.shape[-1]
+
     ## 
     min_vals = np.min(sample_points,axis=0)
     max_vals = np.max(sample_points,axis=0)
 
     if None in config.model.range:
         ### As a test we set the range to the global min and max 
-        config.model.range = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
+        config.model.range = [(min_val,max_val) for min_val, max_val in zip(min_vals,max_vals)]
+        #config.model.range = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
+        print(f"Setting range to global min and max: {config.model.range}")
+
 
     trainer = eu.misc.create_object_from_config(config.trainer)
     model = eu.misc.create_object_from_config(config.model)

@@ -35,13 +35,13 @@ class MichalewiczFunction(BaseFunction):
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         input = args[0]
-
+        #input = np.array(input)
         value = 0
 
         coef = self.config.coef.transpose()
 
         for dim in range(len(coef)):
-            value = value - (np.sin(input[dim]) * np.sin((1*input[dim]**2)/np.pi)**2*coef[dim])
+            value = value - (np.sin(input[dim]) * np.sin((1*input[dim]**2)/np.pi)**(2*10)) 
 
         return value
 

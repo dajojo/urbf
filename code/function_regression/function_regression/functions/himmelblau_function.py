@@ -39,6 +39,9 @@ class HimmelblauFunction(BaseFunction):
         value = 0
 
         coef = self.config.coef.transpose()
+
+        coef = coef[0]
+
         x = input[0]
         y = input[1]
 

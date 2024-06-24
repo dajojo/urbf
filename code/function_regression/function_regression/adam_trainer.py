@@ -80,8 +80,6 @@ class AdamTrainer:
             device = "cuda" if torch.cuda.is_available() else "cpu"
             device = "mps" if torch.backends.mps.is_built() else device
 
-
-
         model.to(device)
 
         eu.misc.update_status(f'Epoch 0/{self.config.n_epochs} - Loss: -')
@@ -114,17 +112,26 @@ class AdamTrainer:
                 # Forward pass: compute the model output
                 outputs = model(inputs.to(device))#.squeeze()
 
+                # print(f"outputs: {outputs.shape} labels: {labels.shape}")
+                #print(f"outputs: {outputs.unique()} labels: {labels.unique()} ")
+
                 if self.config.is_classification and len(outputs.shape) > 1:
                     labels = labels.squeeze().long()
+                    
                 # Compute the loss
                 loss = criterion(outputs, labels.to(device))
 
 
+
+                ## check if nan and print outputs and labels to debug
+     
                 # Backward pass: compute the gradient of the loss with respect to model parameters
                 loss.backward()
 
                 # Perform a single optimization step (parameter update)
                 optimizer.step()
+
+                #print(f"Inputs: {torch.isnan(inputs).sum()} with mean nans {torch.isnan(model.layers[0].means).sum()} with output nans {torch.isnan(outputs).sum()} -> loss {loss.item()} at {epoch} {i}/{len(train_loader)}")
 
                 # Accumulate the running loss
                 running_train_loss += loss.item()#.detach().numpy()

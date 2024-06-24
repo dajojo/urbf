@@ -59,7 +59,7 @@ class IncrementalRBFLayer(torch.nn.Module):
                 for neuron in range(left_features):
 
                     means[(dim)*out_features_per_dim + neuron] = dim_min + step*(neuron) + step/2
-                    vars[(dim)*out_features_per_dim + neuron] = step*2
+                    vars[(dim)*out_features_per_dim + neuron] = step*step
         
 
             vars = torch.div(torch.ones(self.out_features),vars)
@@ -75,20 +75,20 @@ class IncrementalRBFLayer(torch.nn.Module):
             # Initialize a list to store the range for each dimension
             dimension_ranges = []
 
-            max_step = 0
+            steps = torch.zeros(in_features)
 
             for i in range(in_features):
                 # Calculate the step for each dimension
                 step = (self.range[i][1] - self.range[i][0]) / out_features_per_dim
 
-                if step > max_step:
-                    max_step = step
+                steps[i] = step
 
                 # Create a range of values for this dimension
                 dim_range = torch.linspace(self.range[i][0], self.range[i][1], out_features_per_dim)
                 dimension_ranges.append(dim_range)
 
-            print("max step: ", max_step)   
+
+            steps = steps * steps
 
             # Use meshgrid to create the grid for all dimensions
             grid = torch.meshgrid(*dimension_ranges, indexing='ij')
@@ -98,15 +98,20 @@ class IncrementalRBFLayer(torch.nn.Module):
 
             means[:,:_means.shape[-1]]= _means
 
+
             self.means = torch.nn.Parameter(means)
 
             if complexity == "full":
-                self.vars = torch.nn.Parameter(((torch.zeros(self.out_features,self.in_features,self.in_features) + torch.eye(self.in_features)) * max_step).inverse())
+                self.vars = torch.nn.Parameter(((torch.zeros(self.out_features,self.in_features,self.in_features) + torch.eye(self.in_features) * steps)).inverse())
             elif complexity == "diagonal":
-                self.vars = torch.nn.Parameter(torch.div(torch.ones(self.out_features,self.in_features),(torch.ones(self.out_features,self.in_features) * max_step)))
+                self.vars = torch.nn.Parameter(torch.div(torch.ones(self.out_features,self.in_features),(torch.ones(self.out_features,self.in_features) * steps)))
             elif complexity == "scalar":
-                self.vars = torch.nn.Parameter((torch.ones(self.out_features)* 1/max_step))
+                self.vars = torch.nn.Parameter((torch.ones(self.out_features)* 1/(steps).amax()))
             
+            print(f"initial means: {means} with shape {means.shape}")
+            print(f"steps: {steps}")
+            print(f"initial vars: {self.vars} with shape {self.vars.shape}")
+
 
     # def liner_backward_hook(self,module, grad_input, grad_output):
     #     print(f"linear backward hook grad_output: {grad_output[0].shape}")
@@ -116,6 +121,10 @@ class IncrementalRBFLayer(torch.nn.Module):
     def forward(self,x):
 
         if self.complexity == "univariate":
+
+            if torch.isnan(self.means).any():
+                raise "Mean has nan, aborting.."
+
             x = x @ self.expansion_mapping.T
             x = (x - self.means)
 
@@ -123,8 +132,14 @@ class IncrementalRBFLayer(torch.nn.Module):
 
         else:
             x = x.unsqueeze(-1).repeat(1,1,self.out_features)
-            x = (x - self.means[None,:,:]).transpose(1,2)
 
+            #print("mean nans: ",torch.isnan(self.means).sum(), " shape: ", self.means.shape, " x nans: ", torch.isnan(x).sum())
+            
+            if torch.isnan(self.means).any():
+                raise "Mean has nan, aborting.."
+            
+            
+            x = (x - self.means[None,:,:]).transpose(1,2)
             
             if self.complexity == "full":
                 x = x.unsqueeze(-2) @ self.vars[None,:,:,:] @ x.unsqueeze(-1)

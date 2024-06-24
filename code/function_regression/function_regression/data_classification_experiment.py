@@ -186,7 +186,9 @@ def run_data_classification_experiment(config=None,logger=None, **kwargs):
 
     if None in config.model.range:
         ### As a test we set the range to the global min and max 
-        config.model.range = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
+        config.model.range = [(min_val,max_val) for min_val, max_val in zip(min_vals,max_vals)]
+        #config.model.range = (np.min(min_vals,axis=0)*1.2,np.max(max_vals,axis=0)*1.2)
+        print(f"Setting range to global min and max: {config.model.range}")
 
     trainer = eu.misc.create_object_from_config(config.trainer)
     model = eu.misc.create_object_from_config(config.model)

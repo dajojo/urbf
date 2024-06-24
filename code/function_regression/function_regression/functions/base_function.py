@@ -20,8 +20,14 @@ class BaseFunction():
 
         assert num_dimensions == self.config.in_features, "Sample Range elements must match the number of in_features"
 
+        sample_rates = self.config.sample_rates
+
+        if len(sample_rates) != num_dimensions:
+            print("Sample rates do not match the number of dimensions. Using the first sample rate for all dimensions.")
+            sample_rates = sample_rates * num_dimensions
         # Generating a meshgrid for multi-dimensional sampling
-        axes = [np.arange(r[0], r[1], 1/s) for r, s in zip(ranges, self.config.sample_rates)]
+        axes = [np.arange(r[0], r[1], 1/s) for r, s in zip(ranges, sample_rates)]
+
         meshgrid = np.meshgrid(*axes, indexing='ij')
         flat_grid = np.stack([axis.flat for axis in meshgrid], axis=-1)
         
@@ -30,6 +36,8 @@ class BaseFunction():
 
         # Reshape the output
         grid_shape = meshgrid[0].shape
+
+        print("grid_shape",grid_shape)  
         points = np.transpose(np.array(meshgrid), tuple(range(1, num_dimensions + 1)) + (0,))
         points = points.reshape((-1, num_dimensions))
         values = values.reshape([*grid_shape, 1]).reshape((-1, 1))
