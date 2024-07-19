@@ -48,7 +48,11 @@ def run_data_experiments(config=None, **kwargs):
     if config.dataset.cls is UCIMLDataset:
         datasets = uciml_dataset_names
     elif config.dataset.cls is PMLBDataset:
-        datasets = regression_dataset_names
+        print(regression_dataset_names)
+        if config.dataset.name is "CUSTOM":
+            datasets = ["192_vineyard","210_cloud","228_elusage","485_analcatdata_vehicle","519_vinnie","523_analcatdata_neavote","529_pollen","556_analcatdata_apnea2","579_fri_c0_250_5","663_rabe_266","678_visualizing_environmental","687_sleuth_ex1605","690_visualizing_galaxy","712_chscase_geyser1","1027_ESL","1029_LEV","1030_ERA","1096_FacultySalaries","banana"]
+        else:
+            datasets = regression_dataset_names
     else:
         raise NotImplementedError
 
@@ -58,7 +62,7 @@ def run_data_experiments(config=None, **kwargs):
     summary_logger = log.Logger(log_config)
 
     for dataset_name in datasets:
-
+        print("Running dataset: ",dataset_name)
         _config = config.copy()
 
         ### if the dataset is already trained, skip it... check if the folder is present

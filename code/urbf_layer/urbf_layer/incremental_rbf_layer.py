@@ -59,13 +59,13 @@ class IncrementalRBFLayer(torch.nn.Module):
                 for neuron in range(left_features):
 
                     means[(dim)*out_features_per_dim + neuron] = dim_min + step*(neuron) + step/2
-                    vars[(dim)*out_features_per_dim + neuron] = step*step
+                    vars[(dim)*out_features_per_dim + neuron] = (step*2) #** 2 #step*step
         
 
             vars = torch.div(torch.ones(self.out_features),vars)
 
             self.means = torch.nn.Parameter(means)
-            self.vars = torch.nn.Parameter(vars)
+            self.inv_std_dev = torch.nn.Parameter(vars)
 
         else:
             means = torch.rand(self.in_features, self.out_features)
@@ -87,8 +87,11 @@ class IncrementalRBFLayer(torch.nn.Module):
                 dim_range = torch.linspace(self.range[i][0], self.range[i][1], out_features_per_dim)
                 dimension_ranges.append(dim_range)
 
+            ## double the step size
+            steps = steps * 2
 
-            steps = steps * steps
+            ## square the step size
+            #steps = steps * steps ### can we get rid of this? it shows inferior results which could be observed above
 
             # Use meshgrid to create the grid for all dimensions
             grid = torch.meshgrid(*dimension_ranges, indexing='ij')
@@ -102,15 +105,15 @@ class IncrementalRBFLayer(torch.nn.Module):
             self.means = torch.nn.Parameter(means)
 
             if complexity == "full":
-                self.vars = torch.nn.Parameter(((torch.zeros(self.out_features,self.in_features,self.in_features) + torch.eye(self.in_features) * steps)).inverse())
+                self.inv_std_dev = torch.nn.Parameter(((torch.zeros(self.out_features,self.in_features,self.in_features) + torch.eye(self.in_features) * steps)).inverse())
             elif complexity == "diagonal":
-                self.vars = torch.nn.Parameter(torch.div(torch.ones(self.out_features,self.in_features),(torch.ones(self.out_features,self.in_features) * steps)))
+                self.inv_std_dev = torch.nn.Parameter(torch.div(torch.ones(self.out_features,self.in_features),(torch.ones(self.out_features,self.in_features) * steps)))
             elif complexity == "scalar":
-                self.vars = torch.nn.Parameter((torch.ones(self.out_features)* 1/(steps).amax()))
+                self.inv_std_dev = torch.nn.Parameter((torch.ones(self.out_features)* 1/(steps).amax()))
             
             print(f"initial means: {means} with shape {means.shape}")
             print(f"steps: {steps}")
-            print(f"initial vars: {self.vars} with shape {self.vars.shape}")
+            print(f"initial vars: {self.inv_std_dev} with shape {self.inv_std_dev.shape}")
 
 
     # def liner_backward_hook(self,module, grad_input, grad_output):
@@ -126,15 +129,13 @@ class IncrementalRBFLayer(torch.nn.Module):
                 raise "Mean has nan, aborting.."
 
             x = x @ self.expansion_mapping.T
-            x = (x - self.means)
+            x = (x - self.means) * self.inv_std_dev ### moved there...
 
-            x = x ** 2 * self.vars
+            x = x ** 2 #* self.vars -> this implementation works inferiourly to using standard deviation
 
         else:
             x = x.unsqueeze(-1).repeat(1,1,self.out_features)
 
-            #print("mean nans: ",torch.isnan(self.means).sum(), " shape: ", self.means.shape, " x nans: ", torch.isnan(x).sum())
-            
             if torch.isnan(self.means).any():
                 raise "Mean has nan, aborting.."
             
@@ -142,11 +143,12 @@ class IncrementalRBFLayer(torch.nn.Module):
             x = (x - self.means[None,:,:]).transpose(1,2)
             
             if self.complexity == "full":
-                x = x.unsqueeze(-2) @ self.vars[None,:,:,:] @ x.unsqueeze(-1)
+                x = x.unsqueeze(-2) @ (self.inv_std_dev.pow(2))[None,:,:,:] @ x.unsqueeze(-1)
             elif self.complexity == "diagonal":
-                x = x.unsqueeze(-2) @ torch.diag_embed(self.vars)[None,:,:,:] @ x.unsqueeze(-1)
+                x = x.unsqueeze(-2) @ torch.diag_embed(self.inv_std_dev*self.inv_std_dev)[None,:,:,:] @ x.unsqueeze(-1)
             elif self.complexity == "scalar":
-                x = (x*x).sum(dim=-1) * self.vars
+                #x = x * self.inv_std_dev
+                x = (x*x).sum(dim=-1)  * (self.inv_std_dev*self.inv_std_dev)
 
         x = torch.exp(-0.5 * x)
 
