@@ -56,8 +56,7 @@ class AdamTrainer:
             # Define an optimizer and a loss function
             optimizer = torch.optim.Adam([{'params':model.params.mlp.parameters()},
                                         {'params':model.params.urbf_linear.parameters(),'lr': self.config.learning_rate,'weight_decay': 0.0001},
-                                        {'params':model.params.urbf.parameters(), 'lr': self.config.urbf_learning_rate,'weight_decay': 0},
-                      ], lr=self.config.learning_rate,weight_decay=0)
+                                        {'params':model.params.urbf.parameters(), 'lr': self.config.urbf_learning_rate,'weight_decay': 0},], lr=self.config.learning_rate,weight_decay=0)
             
         elif isinstance(model, RBFMLP):
             # Define an optimizer and a loss function

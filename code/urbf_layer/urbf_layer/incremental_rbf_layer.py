@@ -109,7 +109,7 @@ class IncrementalRBFLayer(torch.nn.Module):
             elif complexity == "diagonal":
                 self.inv_std_dev = torch.nn.Parameter(torch.div(torch.ones(self.out_features,self.in_features),(torch.ones(self.out_features,self.in_features) * steps)))
             elif complexity == "scalar":
-                self.inv_std_dev = torch.nn.Parameter((torch.ones(self.out_features)* 1/(steps).amax()))
+                self.inv_std_dev = torch.nn.Parameter((torch.ones(self.out_features)* 1/(steps.amax())))
             
             print(f"initial means: {means} with shape {means.shape}")
             print(f"steps: {steps}")
