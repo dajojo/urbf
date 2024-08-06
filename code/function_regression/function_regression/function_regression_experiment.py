@@ -87,10 +87,16 @@ def run_experiment(config=None, **kwargs):
     # set random seeds with seed defined in the config
     eu.misc.seed(config)
 
+
+    #if config.function.difficulty is None:  
+        ## if difficulty is None, set according to repetition... this is only used in experiment 24
+    #    config.function.difficulty = (config.repetition_id+1)*2
+
+    ### this only affects certain functions which we currently do not use
     difficulty = config.function.difficulty
 
-    if config.function.difficulty < 1:
-        difficulty = int(config.function.difficulty * 100)
+    #if config.function.difficulty < 1:
+    #    difficulty = int(config.function.difficulty * 100)
 
     if "means" not in config.function:
         config.function.means = sample_random_arrays(difficulty, config.function.peak_distr_ranges)
