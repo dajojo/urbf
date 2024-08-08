@@ -13,7 +13,7 @@ config = eu.AttrDict(
         out_features=<out_features>,
         use_rbf=<use_rbf>,
         univariate=<univariate>,
-        difficulty=(<repetition_id>+1)*2 ,
+        difficulty=<difficulty> ,
         complexity=<complexity>,
         hidden_features=<hidden_features>,
         range=<model_range>,
@@ -22,7 +22,7 @@ config = eu.AttrDict(
 
     function = eu.AttrDict(
         cls=function_regression.functions.<function>,
-        difficulty=(<repetition_id>+1)*2 ,
+        difficulty=<difficulty> ,
         in_features=<in_features>,
         ranges=<func_ranges>,
         peak_distr_ranges=<peak_distr_ranges>,
